@@ -2,6 +2,7 @@
 
 namespace Kcs\MessengerExtra\DependencyInjection;
 
+use Kcs\Serializer;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -18,7 +19,7 @@ class MessengerExtraExtension extends Extension
         $loader->load('services.xml');
         $loader->load('middleware.xml');
 
-        if ($container->hasDefinition('kcs_serializer.serializer')) {
+        if (\interface_exists(Serializer\SerializerInterface::class)) {
             $loader->load('serializer.xml');
         }
     }
