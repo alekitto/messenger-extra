@@ -4,6 +4,9 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Types\Type;
+use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
+use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
@@ -42,10 +45,18 @@ class DbalTransportFactory implements TransportFactoryInterface
     {
         $this->managerRegistry = $managerRegistry;
         $this->serializer = $serializer;
+
+        if (! Type::hasType(UuidBinaryType::NAME)) {
+            Type::addType(UuidBinaryType::NAME, UuidBinaryType::class);
+        }
+        if (! Type::hasType(UuidBinaryOrderedTimeType::NAME)) {
+            Type::addType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class);
+        }
     }
 
     public function createTransport(string $dsn, array $options): TransportInterface
     {
+        $dsn = preg_replace('#^(sqlite3?):///#', '$1://localhost/', $dsn);
         $params = \parse_url($dsn);
         if ('doctrine' === $params['scheme']) {
             if (null === $this->managerRegistry) {
@@ -63,7 +74,37 @@ class DbalTransportFactory implements TransportFactoryInterface
 
             $connection = $this->managerRegistry->getConnection($connectionName);
         } else {
-            [$databaseName, $tableName] = \explode($params['path'], 2) + [null, 'messenger'];
+            $path = $params['path'];
+            if (0 === \strpos($path, '/')) {
+                $path = \substr($path, 1);
+            }
+
+            if ('sqlite' === $params['scheme'] || 'sqlite3' === $params['scheme']) {
+                // SQLite has a little different handling. First we should determine the filename.
+                $databaseName = $path;
+                $tableName = 'messenger';
+
+                $reverse = strrev($path);
+                $count = \substr_count($path, '/');
+                for ($i = 1; $i < $count; $i++) {
+                    $chunks = \explode('/', $reverse, $i);
+                    $tmp = \strrev($chunks[ $i - 1 ]);
+                    $ext = \pathinfo($tmp, PATHINFO_EXTENSION);
+
+                    if ('' !== $ext || \is_file($ext)) {
+                        $databaseName = $tmp;
+                        $tableName = \strrev($chunks[$i - 2]) ?? 'messenger';
+                        break;
+                    }
+                }
+
+                if (strpos($databaseName, '/') === 0) {
+                    $databaseName = '/'.$databaseName;
+                }
+            } else {
+                [$databaseName, $tableName] = \explode('/', $path, 2) + [null, 'messenger'];
+            }
+
             $params['path'] = $databaseName;
 
             \parse_str($params['query'] ?? '', $opts);

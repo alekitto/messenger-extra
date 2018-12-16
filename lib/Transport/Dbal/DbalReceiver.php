@@ -132,7 +132,7 @@ class DbalReceiver implements ReceiverInterface
             ->andWhere('delivery_id IS NULL')
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
-            ->setParameter('delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
             ->setMaxResults(1);
 
         $update = $this->connection->createQueryBuilder()
@@ -141,8 +141,8 @@ class DbalReceiver implements ReceiverInterface
             ->set('redeliver_after', ':redeliverAfter')
             ->andWhere('id = :messageId')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter('deliveryId', $deliveryId, UuidBinaryType::NAME)
-            ->setParameter('redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':deliveryId', $deliveryId, UuidBinaryType::NAME)
+            ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
         ;
 
         while (\microtime(true) < $endAt) {
@@ -152,14 +152,14 @@ class DbalReceiver implements ReceiverInterface
             }
 
             $id = $this->uuidType->convertToPHPValue($result['id'], $this->connection->getDatabasePlatform());
-            $update->setParameter('messageId', $id, UuidBinaryOrderedTimeType::NAME);
+            $update->setParameter(':messageId', $id, UuidBinaryOrderedTimeType::NAME);
 
             if ($update->execute()) {
                 $deliveredMessage = $this->connection->createQueryBuilder()
                     ->select('*')
                     ->from($this->tableName)
                     ->andWhere('delivery_id = :deliveryId')
-                    ->setParameter('deliveryId', $deliveryId, UuidBinaryType::NAME)
+                    ->setParameter(':deliveryId', $deliveryId, UuidBinaryType::NAME)
                     ->setMaxResults(1)
                     ->execute()
                     ->fetch()
@@ -207,7 +207,7 @@ class DbalReceiver implements ReceiverInterface
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
             ->setParameter(':now', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
-            ->setParameter('deliveryId', null, UuidBinaryType::NAME)
+            ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
             ->execute()
         ;
 
@@ -258,7 +258,7 @@ class DbalReceiver implements ReceiverInterface
             ->set('delivery_id', ':deliveryId')
             ->andWhere('id < :id')
             ->setParameter(':id', $id, UuidBinaryOrderedTimeType::NAME)
-            ->setParameter('deliveryId', null, UuidBinaryType::NAME)
+            ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
             ->execute()
         ;
     }

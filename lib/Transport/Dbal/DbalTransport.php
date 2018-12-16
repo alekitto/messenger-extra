@@ -3,6 +3,8 @@
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
@@ -62,28 +64,21 @@ class DbalTransport implements TransportInterface
             return;
         }
 
-        $table = $schema->createTable($this->options['table_name']);
-        $table->addColumn('id', UuidBinaryOrderedTimeType::NAME);
-        $table->addColumn('published_at', Type::DATETIMETZ_IMMUTABLE);
+        $this->_createTable($schema);
+    }
 
-        $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
-            ->setNotnull(false);
-        $table->addColumn('time_to_live', Type::INTEGER)
-            ->setNotnull(false);
+    /**
+     * Creates the queue table.
+     */
+    public function createTable(): void
+    {
+        $this->connection->connect();
+        $schemaManager = $this->connection->getSchemaManager();
+        $schema = $schemaManager->createSchema();
 
-        $table->addColumn('body', Type::TEXT);
-        $table->addColumn('headers', Type::JSON);
-        $table->addColumn('properties', Type::JSON);
-        $table->addColumn('priority', Type::INTEGER);
-
-        $table->addColumn('delivery_id', UuidBinaryType::NAME)
-            ->setNotnull(false);
-        $table->addColumn('redeliver_after', Type::DATETIMETZ_IMMUTABLE)
-            ->setNotnull(false);
-
-        $table->setPrimaryKey(['id']);
-        $table->addIndex(['delivery_id']);
-        $table->addIndex(['priority']);
+        if (! $schema->hasTable($this->options['table_name'])) {
+            $schemaManager->createTable($this->_createTable($schema));
+        }
     }
 
     /**
@@ -118,5 +113,33 @@ class DbalTransport implements TransportInterface
     private function getSender(): DbalSender
     {
         return $this->sender = new DbalSender($this->connection, $this->options['table_name'], $this->serializer);
+    }
+
+    private function _createTable(Schema $schema): Table
+    {
+        $table = $schema->createTable($this->options['table_name']);
+        $table->addColumn('id', UuidBinaryOrderedTimeType::NAME);
+        $table->addColumn('published_at', Type::DATETIMETZ_IMMUTABLE);
+
+        $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
+            ->setNotnull(false);
+        $table->addColumn('time_to_live', Type::INTEGER)
+            ->setNotnull(false);
+
+        $table->addColumn('body', Type::TEXT);
+        $table->addColumn('headers', Type::JSON);
+        $table->addColumn('properties', Type::JSON);
+        $table->addColumn('priority', Type::INTEGER);
+
+        $table->addColumn('delivery_id', UuidBinaryType::NAME)
+            ->setNotnull(false);
+        $table->addColumn('redeliver_after', Type::DATETIMETZ_IMMUTABLE)
+            ->setNotnull(false);
+
+        $table->setPrimaryKey(['id']);
+        $table->addIndex(['delivery_id']);
+        $table->addIndex(['priority']);
+
+        return $table;
     }
 }

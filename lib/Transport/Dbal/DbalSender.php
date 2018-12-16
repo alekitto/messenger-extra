@@ -67,7 +67,7 @@ class DbalSender implements SenderInterface
 
         if ($message instanceof DelayedMessageInterface) {
             $timestamp = \microtime(true) + ($message->getDelay() * 1000);
-            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', $timestamp);
+            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', (string) $timestamp);
         }
 
         $this->connection->insert($this->tableName, $values, [
