@@ -40,11 +40,12 @@ class DoctrineClearIdentityMapMiddlewareTest extends TestCase
             ->shouldBeCalled()
             ->will(function () use (&$handleCalled, $envelope): Envelope {
                 $handleCalled = true;
+
                 return $envelope;
             });
 
         $this->doctrine->getManagers()
-            ->willReturn([ $manager = $this->prophesize(ObjectManager::class) ]);
+            ->willReturn([$manager = $this->prophesize(ObjectManager::class)]);
         $manager->clear()->shouldBeCalled();
 
         $this->middleware->handle($envelope, $stack->reveal());

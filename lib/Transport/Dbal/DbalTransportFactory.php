@@ -56,7 +56,7 @@ class DbalTransportFactory implements TransportFactoryInterface
 
     public function createTransport(string $dsn, array $options): TransportInterface
     {
-        $dsn = preg_replace('#^(sqlite3?):///#', '$1://localhost/', $dsn);
+        $dsn = \preg_replace('#^(sqlite3?):///#', '$1://localhost/', $dsn);
         $params = \parse_url($dsn);
         if ('doctrine' === $params['scheme']) {
             if (null === $this->managerRegistry) {
@@ -84,21 +84,21 @@ class DbalTransportFactory implements TransportFactoryInterface
                 $databaseName = $path;
                 $tableName = 'messenger';
 
-                $reverse = strrev($path);
+                $reverse = \strrev($path);
                 $count = \substr_count($path, '/');
-                for ($i = 1; $i < $count; $i++) {
+                for ($i = 1; $i < $count; ++$i) {
                     $chunks = \explode('/', $reverse, $i);
-                    $tmp = \strrev($chunks[ $i - 1 ]);
+                    $tmp = \strrev($chunks[$i - 1]);
                     $ext = \pathinfo($tmp, PATHINFO_EXTENSION);
 
                     if ('' !== $ext || \is_file($ext)) {
                         $databaseName = $tmp;
-                        $tableName = \strrev($chunks[$i - 2]) ?? 'messenger';
+                        $tableName = isset($chunks[$i - 2]) ? \strrev($chunks[$i - 2]) : 'messenger';
                         break;
                     }
                 }
 
-                if (strpos($databaseName, '/') === 0) {
+                if (0 === \strpos($databaseName, '/')) {
                     $databaseName = '/'.$databaseName;
                 }
             } else {

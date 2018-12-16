@@ -4,6 +4,7 @@
     "type": "library",
     "require": {
         "php": "^7.1",
+        "ext-json": "*",
         "symfony/messenger": ">=4.2,<4.3"
     },
     "require-dev": {
@@ -14,6 +15,7 @@
         "ramsey/uuid": "^3.8",
         "ramsey/uuid-doctrine": "^1.5",
         "symfony/framework-bundle": "^4.2",
+        "symfony/process": "^4.2",
         "symfony/property-access": "^4.2",
         "symfony/serializer": "^4.2"
     },

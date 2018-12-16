@@ -59,7 +59,7 @@ class DbalTransportTest extends TestCase
 
     public function testSend(): void
     {
-        $message = new class implements DelayedMessageInterface, TTLAwareMessageInterface {
+        $message = new class() implements DelayedMessageInterface, TTLAwareMessageInterface {
             public function getDelay(): int
             {
                 return 5000;
@@ -75,7 +75,7 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('id', Argument::type(UuidInterface::class)),
             Argument::withEntry('published_at', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('body', '{"delay":5000,"ttl":10}'),
-            Argument::withEntry('headers', ['type' => get_class($message)]),
+            Argument::withEntry('headers', ['type' => \get_class($message)]),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type('int')),
@@ -137,7 +137,7 @@ class DbalTransportTest extends TestCase
         )
             ->shouldBeCalled()
             ->willReturn(new ArrayStatement([
-                [ 'id' => $messageId ],
+                ['id' => $messageId],
             ]));
 
         $deliveryId = null;
