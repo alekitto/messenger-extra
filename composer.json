@@ -1,0 +1,39 @@
+{
+    "name": "kcs/messenger-extra",
+    "description": "Additional transports and serializer support for symfony messenger",
+    "type": "library",
+    "require": {
+        "php": "^7.1",
+        "symfony/messenger": ">=4.2,<4.3"
+    },
+    "require-dev": {
+        "doctrine/dbal": "^2.9",
+        "doctrine/orm": "^2.6",
+        "kcs/serializer": "2.x-dev",
+        "phpunit/phpunit": "^7.5",
+        "ramsey/uuid": "^3.8",
+        "ramsey/uuid-doctrine": "^1.5",
+        "symfony/framework-bundle": "^4.2",
+        "symfony/serializer": "^4.2"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alessandro Chitolina",
+            "email": "alekitto@gmail.com"
+        }
+    ],
+    "config": {
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "Kcs\\MessengerExtra\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Kcs\\MessengerExtra\\Tests\\": "tests/"
+        }
+    }
+}

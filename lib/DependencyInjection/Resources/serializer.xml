@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <defaults public="false" />
+
+        <service id="Kcs\MessengerExtra\Adapter\Serializer\MessengerSerializer">
+            <argument type="service" id="kcs_serializer.serializer" />
+            <argument>json</argument>
+            <argument type="collection">
+                <argument key="groups" type="collection">
+                    <argument>messenger</argument>
+                </argument>
+            </argument>
+        </service>
+    </services>
+</container>
