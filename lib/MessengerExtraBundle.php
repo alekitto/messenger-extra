@@ -4,6 +4,7 @@ namespace Kcs\MessengerExtra;
 
 use Kcs\MessengerExtra\DependencyInjection\Compiler;
 use Kcs\MessengerExtra\DependencyInjection\MessengerExtraExtension;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -14,7 +15,7 @@ class MessengerExtraBundle extends Bundle
      */
     public function build(ContainerBuilder $container): void
     {
-        $container->addCompilerPass(new Compiler\RegisterDoctrineEvents());
+        $container->addCompilerPass(new Compiler\RegisterDoctrineEvents(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50);
     }
 
     /**
