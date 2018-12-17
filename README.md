@@ -1,5 +1,7 @@
 Messenger Extra
-===
+===============
+
+[![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=master)](https://travis-ci.com/alekitto/messenger-extra)
 
 This library provides additional transports (and other things) for the symfony messenger component.
 
@@ -9,11 +11,11 @@ This library provides additional transports (and other things) for the symfony m
 
 A transport using doctrine DBAL can be used through the `DbalTransportFactory`.
 
-Supports delayed and expiring messages (TTL).
+Supports delayed, prioritized and expiring messages (TTL).
 
 The dsn supports the following schemes:
 
-- `doctrine:` to use a doctrine ORM existing connection
+- `doctrine` to use a doctrine ORM existing connection
 - `db2`
 - `mssql`
 - `mysql`
@@ -23,6 +25,15 @@ The dsn supports the following schemes:
 - `pgsql`
 - `sqlite`
 - `sqlite3`
+
+### Mongo
+
+Transport using MongoDB PHP client as trasport.
+
+Supports delayed, prioritized and expiring messages (TTL).
+
+Use DSN with `mongodb` scheme with `/database/collection` path
+(database `default` and `queue` collection are used if not specified).
 
 ### Null
 
