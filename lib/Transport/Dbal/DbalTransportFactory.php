@@ -5,6 +5,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
+use Kcs\MessengerExtra\Utils\UrlUtils;
 use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
 use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
@@ -110,7 +111,7 @@ class DbalTransportFactory implements TransportFactoryInterface
             \parse_str($params['query'] ?? '', $opts);
             $options = \array_merge($opts, $options, ['table_name' => $tableName]);
 
-            $connection = DriverManager::getConnection(['url' => self::build_url($params)]);
+            $connection = DriverManager::getConnection(['url' => UrlUtils::buildUrl($params)]);
         }
 
         return new DbalTransport($connection, $this->serializer, $options);
@@ -121,20 +122,5 @@ class DbalTransportFactory implements TransportFactoryInterface
         $scheme = \parse_url($dsn, PHP_URL_SCHEME);
 
         return 'doctrine' === $scheme || \in_array($scheme, self::DBAL_SUPPORTED_SCHEMES, true);
-    }
-
-    private static function build_url(array $url): string
-    {
-        $authority = ($url['user'] ?? '').(isset($url['pass']) ? ':'.$url['pass'] : '');
-
-        return
-            (isset($url['scheme']) ? $url['scheme'].'://' : '').
-            ($url['host'] ?? '').
-            (isset($url['port']) ? ':'.$url['port'] : '').
-            ($authority ? $authority.'@' : '').
-            ($url['path'] ?? '').
-            (isset($url['port']) ? '?'.$url['port'] : '').
-            (isset($url['fragment']) ? '#'.$url['fragment'] : '')
-        ;
     }
 }

@@ -8,9 +8,11 @@
         "symfony/messenger": ">=4.2,<4.3"
     },
     "require-dev": {
+        "ext-mongodb": "^1.5",
         "doctrine/dbal": "^2.9",
         "doctrine/orm": "^2.6",
         "kcs/serializer": "2.x-dev",
+        "mongodb/mongodb": "^1.4",
         "phpunit/phpunit": "^7.5",
         "ramsey/uuid": "^3.8",
         "ramsey/uuid-doctrine": "^1.5",

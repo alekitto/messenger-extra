@@ -17,7 +17,24 @@ matrix:
         - php: 7.2
           env: SYMFONY_VERSION='dev-master'
 
+env:
+    global:
+        - KEY_SERVER="hkp://keyserver.ubuntu.com:80"
+        - MONGO_REPO_URI="https://repo.mongodb.org/apt/ubuntu"
+        - MONGO_REPO_TYPE="precise/mongodb-org/"
+        - SOURCES_LOC="/etc/apt/sources.list.d/mongodb.list"
+        - DRIVER_VERSION="stable"
+        - SERVER_VERSION="3.6"
+        - KEY_ID="2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5"
+
 before_install:
+    - sudo apt-key adv --keyserver ${KEY_SERVER} --recv ${KEY_ID}
+    - echo "deb ${MONGO_REPO_URI} ${MONGO_REPO_TYPE}${SERVER_VERSION} multiverse" | sudo tee ${SOURCES_LOC}
+    - sudo apt-get update -qq
+    - sudo apt-get --allow-unauthenticated install mongodb-org
+    - sudo service mongod start
+    - echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+
     - composer self-update
     - if [ "$SYMFONY_VERSION" != "" ]; then composer require --dev --no-update symfony/messenger=$SYMFONY_VERSION; fi
 

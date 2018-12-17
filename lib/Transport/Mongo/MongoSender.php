@@ -1,14 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Kcs\MessengerExtra\Transport\Dbal;
+namespace Kcs\MessengerExtra\Transport\Mongo;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Uuid;
+use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
@@ -19,27 +16,21 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class DbalSender implements SenderInterface
+class MongoSender implements SenderInterface
 {
+    /**
+     * @var Collection
+     */
+    private $collection;
+
     /**
      * @var SerializerInterface
      */
     private $serializer;
 
-    /**
-     * @var string
-     */
-    private $tableName;
-
-    /**
-     * @var Connection
-     */
-    private $connection;
-
-    public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
+    public function __construct(Collection $collection, SerializerInterface $serializer = null)
     {
-        $this->connection = $connection;
-        $this->tableName = $tableName;
+        $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
     }
 
@@ -52,8 +43,7 @@ class DbalSender implements SenderInterface
         $encodedMessage = $this->serializer->encode($envelope);
 
         $values = [
-            'id' => Uuid::uuid1(),
-            'published_at' => new \DateTimeImmutable(),
+            'published_at' => \time(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'],
             'properties' => [],
@@ -68,23 +58,14 @@ class DbalSender implements SenderInterface
 
         if ($message instanceof DelayedMessageInterface) {
             $timestamp = \microtime(true) + ($message->getDelay() * 1000);
-            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', (string) $timestamp);
+            $values['delayed_until'] = (int) $timestamp;
         }
 
         if ($message instanceof PriorityAwareMessageInterface) {
             $values['priority'] = $message->getPriority();
         }
 
-        $this->connection->insert($this->tableName, $values, [
-            'id' => UuidBinaryOrderedTimeType::NAME,
-            'published_at' => Type::DATETIMETZ_IMMUTABLE,
-            'body' => Type::TEXT,
-            'headers' => Type::JSON,
-            'properties' => Type::JSON,
-            'priority' => Type::INTEGER,
-            'time_to_live' => Type::INTEGER,
-            'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
-        ]);
+        $this->collection->insertOne($values);
 
         return $envelope;
     }

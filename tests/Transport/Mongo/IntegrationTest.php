@@ -1,9 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
+namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
 use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
-use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
+use Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory;
+use MongoDB\Client;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
@@ -18,12 +19,12 @@ class IntegrationTest extends TestCase
 {
     protected function setUp(): void
     {
-        @\unlink(__DIR__.'/queue.db');
+        $this->dropCollection();
     }
 
     protected function tearDown(): void
     {
-        @\unlink(__DIR__.'/queue.db');
+        $this->dropCollection();
     }
 
     public function testSendsAndReceivesMessages(): void
@@ -36,9 +37,8 @@ class IntegrationTest extends TestCase
             ])
         );
 
-        $factory = new DbalTransportFactory(null, $serializer);
-        $transport = $factory->createTransport('sqlite:///'.__DIR__.'/queue.db', []);
-        $transport->createTable();
+        $factory = new MongoTransportFactory($serializer);
+        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
 
         $transport->send($first = new Envelope(new DummyMessage('First')));
         $transport->send($second = new Envelope(new DummyMessage('Second')));
@@ -67,16 +67,15 @@ class IntegrationTest extends TestCase
             ])
         );
 
-        $factory = new DbalTransportFactory(null, $serializer);
-        $transport = $factory->createTransport('sqlite:///'.__DIR__.'/queue.db', []);
-        $transport->createTable();
+        $factory = new MongoTransportFactory($serializer);
+        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
 
         $transport->send(new Envelope(new DummyMessage('Hello')));
 
         $amqpReadTimeout = 30;
         $process = new PhpProcess(\file_get_contents(__DIR__.'/long_receiver.php'), null, [
             'ROOT' => __DIR__.'/../../../',
-            'DSN' => 'sqlite:///'.__DIR__.'/queue.db',
+            'DSN' => 'mongodb://localhost:27017',
         ]);
 
         $process->start();
@@ -118,9 +117,8 @@ TXT
             ))
         );
 
-        $factory = new DbalTransportFactory(null, $serializer);
-        $transport = $factory->createTransport('sqlite:///'.__DIR__.'/queue.db', []);
-        $transport->createTable();
+        $factory = new MongoTransportFactory($serializer);
+        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
 
         $receivedMessages = 0;
         $transport->receive(function (?Envelope $envelope) use ($transport, &$receivedMessages) {
@@ -147,5 +145,11 @@ TXT
         }
 
         throw new \RuntimeException('Expected output never arrived. Got "'.$process->getOutput().'" instead.');
+    }
+
+    private function dropCollection(): void
+    {
+        $client = new Client('mongodb://localhost:27017/');
+        $client->default->queue->drop();
     }
 }
