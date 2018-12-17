@@ -11,8 +11,13 @@
             <tag name="messenger.transport_factory" />
         </service>
 
-        <service id="kcs.messenger_extra.transport.dbal.factory" class="MongoTransportFactory">
+        <service id="kcs.messenger_extra.transport.dbal.factory" class="Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory">
             <argument type="service" id="doctrine" on-invalid="null" />
+            <argument type="service" id="messenger.transport.serializer" />
+            <tag name="messenger.transport_factory" />
+        </service>
+
+        <service id="kcs.messenger_extra.transport.mongodb.factory" class="Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory">
             <argument type="service" id="messenger.transport.serializer" />
             <tag name="messenger.transport_factory" />
         </service>
