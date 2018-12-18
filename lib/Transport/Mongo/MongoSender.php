@@ -44,7 +44,7 @@ class MongoSender implements SenderInterface
         $encodedMessage = $this->serializer->encode($envelope);
 
         $values = [
-            'id' => new ObjectId(),
+            '_id' => new ObjectId(),
             'published_at' => \time(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'],

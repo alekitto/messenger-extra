@@ -167,7 +167,7 @@ class MongoReceiver implements ReceiverInterface
      */
     private function acknowledge(array $message): void
     {
-        $this->collection->deleteOne(['id' => $message['id']]);
+        $this->collection->deleteOne(['_id' => $message['_id']]);
     }
 
     /**
@@ -178,7 +178,7 @@ class MongoReceiver implements ReceiverInterface
     private function redeliver(array $message): void
     {
         $this->collection->updateOne([
-            'id' => $message['id'],
+            '_id' => $message['_id'],
         ], [
             '$set' => [
                 'delivery_id' => null,

@@ -120,14 +120,14 @@ class MongoTransportTest extends TestCase
                 'typeMap' => ['root' => 'array', 'document' => 'array'],
             ]
         )->willReturn($document = [
-            'id' => 'document_id',
+            '_id' => 'document_id',
             'published_at' => \time(),
             'body' => '{}',
             'headers' => ['type' => 'stdClass'],
             'time_to_live' => null,
         ]);
 
-        $this->collection->updateOne(['id' => 'document_id'], [
+        $this->collection->updateOne(['_id' => 'document_id'], [
             '$set' => ['delivery_id' => null, 'redeliver_at' => null],
         ])->willReturn();
 
