@@ -9,6 +9,31 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 class RegisterDoctrineEventsTest extends TestCase
 {
+    public function provideNonDoctrineUrl(): iterable
+    {
+        yield [ 'null:' ];
+        yield [ '/just_a_path' ];
+        yield [ 'not_an_url' ];
+    }
+
+    /**
+     * @dataProvider provideNonDoctrineUrl
+     */
+    public function testProcessShouldDoNothingOnInvalidUrl(string $url): void
+    {
+        $container = new ContainerBuilder();
+        $def = $container
+            ->register('kcs.messenger.test_transport', TransportInterface::class)
+            ->addArgument($url)
+            ->addTag('messenger.receiver')
+        ;
+
+        $pass = new RegisterDoctrineEvents();
+        $pass->process($container);
+
+        self::assertCount(0, $tags = $def->getTag('doctrine.event_listener'));
+    }
+
     public function testProcessShouldAddEventListenerTagToDbalTransports(): void
     {
         $container = new ContainerBuilder();

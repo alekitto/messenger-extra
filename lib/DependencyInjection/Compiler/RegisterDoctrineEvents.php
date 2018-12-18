@@ -22,7 +22,7 @@ class RegisterDoctrineEvents implements CompilerPassInterface
                 throw new InvalidConfigurationException(\sprintf('"%s" is not a valid URL', $url));
             }
 
-            if ('doctrine' === $urlParams['scheme']) {
+            if ('doctrine' === ($urlParams['scheme'] ?? '')) {
                 $definition->addTag('doctrine.event_listener', [
                     'event' => 'postGenerateSchema',
                     'connection' => $urlParams['host'] ?? 'default',
