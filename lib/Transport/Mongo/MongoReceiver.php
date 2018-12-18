@@ -3,6 +3,7 @@
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
 use MongoDB\Collection;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -63,8 +64,9 @@ class MongoReceiver implements ReceiverInterface
 
             try {
                 $handler($envelope);
+                $this->acknowledge($message);
             } catch (\Throwable $e) {
-                $this->collection->insertOne($message);
+                $this->redeliver($message);
 
                 throw $e;
             } finally {
@@ -90,13 +92,31 @@ class MongoReceiver implements ReceiverInterface
      */
     private function fetchMessage(): ?array
     {
+        $deliveryId = Uuid::uuid4()->toString();
         $now = \time();
-        $message = $this->collection->findOneAndDelete(
+        $message = $this->collection->findOneAndUpdate(
             [
-                '$or' => [
-                    ['delayed_until' => ['$exists' => false]],
-                    ['delayed_until' => null],
-                    ['delayed_until' => ['$lte' => $now]],
+                '$and' => [
+                    [
+                        '$or' => [
+                            ['delayed_until' => ['$exists' => false]],
+                            ['delayed_until' => null],
+                            ['delayed_until' => ['$lte' => $now]],
+                        ],
+                    ],
+                    [
+                        '$or' => [
+                            ['delivery_id' => ['$exists' => false]],
+                            ['delivery_id' => null],
+                            ['redeliver_at' => ['$lte' => $now]],
+                        ]
+                    ]
+                ]
+            ],
+            [
+                '$set' => [
+                    'delivery_id' => $deliveryId,
+                    'redeliver_at' => $now + 300,
                 ],
             ],
             [
@@ -138,5 +158,32 @@ class MongoReceiver implements ReceiverInterface
         ]);
 
         $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
+    }
+
+    /**
+     * Mark a message as acknowledged (and deletes it).
+     *
+     * @param array $message
+     */
+    private function acknowledge(array $message): void
+    {
+        $this->collection->deleteOne(['id' => $message['id']]);
+    }
+
+    /**
+     * Redeliver a single message.
+     *
+     * @param array $message
+     */
+    private function redeliver(array $message): void
+    {
+        $this->collection->updateOne([
+            'id' => $message['id'],
+        ], [
+            '$set' => [
+                'delivery_id' => null,
+                'redeliver_at' => null,
+            ],
+        ]);
     }
 }

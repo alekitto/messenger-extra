@@ -94,10 +94,26 @@ class MongoTransportTest extends TestCase
         // Delete expired messages
         $this->collection->deleteMany(Argument::type('array'))->willReturn();
 
-        $this->collection->findOneAndDelete(
-            Argument::withEntry('$or', Argument::allOf(
-                Argument::withEntry(0, ['delayed_until' => ['$exists' => false]]),
-                Argument::withEntry(1, Argument::type('array'))
+        $this->collection->findOneAndUpdate(
+            Argument::withEntry('$and',
+                Argument::withEntry(0,
+                    Argument::withEntry('$or', Argument::allOf(
+                        Argument::withEntry(0, ['delayed_until' => ['$exists' => false]]),
+                        Argument::withEntry(1, ['delayed_until' => null]),
+                        Argument::withEntry(2, Argument::type('array'))
+                    ))
+                ),
+                Argument::withEntry(1,
+                    Argument::withEntry('$or', Argument::allOf(
+                        Argument::withEntry(0, ['delivery_id' => ['$exists' => false]]),
+                        Argument::withEntry(1, ['delivery_id' => null]),
+                        Argument::withEntry(2, Argument::type('array'))
+                    ))
+                )
+            ),
+            Argument::withEntry('$set', Argument::allOf(
+                Argument::withEntry('delivery_id', Argument::type('string')),
+                Argument::withEntry('redeliver_at', Argument::type('int'))
             )),
             [
                 'sort' => ['priority' => -1, 'published_at' => 1],
@@ -110,6 +126,10 @@ class MongoTransportTest extends TestCase
             'headers' => ['type' => 'stdClass'],
             'time_to_live' => null,
         ]);
+
+        $this->collection->updateOne(['id' => 'document_id'], [
+            '$set' => ['delivery_id' => null, 'redeliver_at' => null],
+        ])->willReturn();
 
         // Redeliver message.
         $this->collection->insertOne($document)->willReturn();

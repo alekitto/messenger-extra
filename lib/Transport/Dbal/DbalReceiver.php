@@ -256,7 +256,7 @@ class DbalReceiver implements ReceiverInterface
         $this->connection->createQueryBuilder()
             ->update($this->tableName)
             ->set('delivery_id', ':deliveryId')
-            ->andWhere('id < :id')
+            ->andWhere('id = :id')
             ->setParameter(':id', $id, UuidBinaryOrderedTimeType::NAME)
             ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
             ->execute()

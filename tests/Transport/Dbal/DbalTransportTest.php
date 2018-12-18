@@ -181,7 +181,7 @@ class DbalTransportTest extends TestCase
 
         // Re-deliver an errored message.
         $this->connection->executeUpdate(
-            'UPDATE messenger SET delivery_id = :deliveryId WHERE id < :id',
+            'UPDATE messenger SET delivery_id = :deliveryId WHERE id = :id',
             [':id' => $messageId, ':deliveryId' => null],
             [':id' => UuidBinaryOrderedTimeType::NAME, ':deliveryId' => UuidBinaryType::NAME]
         )->shouldBeCalled();

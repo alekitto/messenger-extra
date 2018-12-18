@@ -5,6 +5,7 @@ namespace Kcs\MessengerExtra\Transport\Mongo;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
+use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
@@ -43,6 +44,7 @@ class MongoSender implements SenderInterface
         $encodedMessage = $this->serializer->encode($envelope);
 
         $values = [
+            'id' => new ObjectId(),
             'published_at' => \time(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'],
@@ -50,6 +52,8 @@ class MongoSender implements SenderInterface
             'priority' => 0,
             'time_to_live' => null,
             'delayed_until' => null,
+            'delivery_id' => null,
+            'redeliver_at' => null,
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
