@@ -10,11 +10,7 @@
         <service id="Kcs\MessengerExtra\Adapter\Serializer\MessengerSerializer">
             <argument type="service" id="kcs_serializer.serializer" />
             <argument>json</argument>
-            <argument type="collection">
-                <argument key="groups" type="collection">
-                    <argument>messenger</argument>
-                </argument>
-            </argument>
+            <argument type="collection" />
         </service>
     </services>
 </container>

@@ -23,7 +23,7 @@ final class ContextConverter
     {
         $ctx = new SerializationContext();
 
-        if (isset($context['groups'])) {
+        if (! empty($context['groups'])) {
             $ctx->setGroups($context['groups']);
         }
 
@@ -45,7 +45,7 @@ final class ContextConverter
             $ctx->setAttribute('target', $context['object_to_populate']);
         }
 
-        if (isset($context['groups'])) {
+        if (! empty($context['groups'])) {
             $ctx->setGroups($context['groups']);
         }
 
