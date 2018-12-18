@@ -2,7 +2,9 @@
 
 namespace Kcs\MessengerExtra\DependencyInjection;
 
+use Doctrine\DBAL\Types\Type;
 use Kcs\Serializer;
+use MongoDB\Client;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -21,6 +23,14 @@ class MessengerExtraExtension extends Extension
 
         if (\interface_exists(Serializer\SerializerInterface::class)) {
             $loader->load('serializer.xml');
+        }
+
+        if (! \class_exists(Type::class)) {
+            $container->removeDefinition('kcs.messenger_extra.transport.dbal.factory');
+        }
+
+        if (! \class_exists(Client::class)) {
+            $container->removeDefinition('kcs.messenger_extra.transport.mongodb.factory');
         }
     }
 }
