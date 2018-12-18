@@ -15,7 +15,13 @@ class MessengerExtraBundle extends Bundle
      */
     public function build(ContainerBuilder $container): void
     {
-        $container->addCompilerPass(new Compiler\RegisterDoctrineEvents(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50);
+        $container
+            ->addCompilerPass(new Compiler\RegisterDoctrineEventsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50)
+        ;
+
+        if ($container->getParameter('kernel.debug')) {
+            $container->addCompilerPass(new Compiler\CheckDependencyPass(), PassConfig::TYPE_AFTER_REMOVING);
+        }
     }
 
     /**

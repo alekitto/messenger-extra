@@ -6,7 +6,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
-class RegisterDoctrineEvents implements CompilerPassInterface
+class RegisterDoctrineEventsPass implements CompilerPassInterface
 {
     /**
      * {@inheritdoc}

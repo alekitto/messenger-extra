@@ -21,6 +21,10 @@
         "symfony/property-access": "^4.2",
         "symfony/serializer": "^4.2"
     },
+    "suggest": {
+        "ramsey/uuid": "Required to use mongodb and dbal transport",
+        "ramsey/uuid-doctrine": "Required for DBAL transport"
+    },
     "license": "MIT",
     "authors": [
         {

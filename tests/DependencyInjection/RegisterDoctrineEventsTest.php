@@ -2,7 +2,7 @@
 
 namespace Kcs\MessengerExtra\Tests\DependencyInjection;
 
-use Kcs\MessengerExtra\DependencyInjection\Compiler\RegisterDoctrineEvents;
+use Kcs\MessengerExtra\DependencyInjection\Compiler\RegisterDoctrineEventsPass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -28,7 +28,7 @@ class RegisterDoctrineEventsTest extends TestCase
             ->addTag('messenger.receiver')
         ;
 
-        $pass = new RegisterDoctrineEvents();
+        $pass = new RegisterDoctrineEventsPass();
         $pass->process($container);
 
         self::assertCount(0, $tags = $def->getTag('doctrine.event_listener'));
@@ -43,7 +43,7 @@ class RegisterDoctrineEventsTest extends TestCase
             ->addTag('messenger.receiver')
         ;
 
-        $pass = new RegisterDoctrineEvents();
+        $pass = new RegisterDoctrineEventsPass();
         $pass->process($container);
 
         self::assertCount(1, $tags = $def->getTag('doctrine.event_listener'));
@@ -64,7 +64,7 @@ class RegisterDoctrineEventsTest extends TestCase
             ->addTag('messenger.receiver')
         ;
 
-        $pass = new RegisterDoctrineEvents();
+        $pass = new RegisterDoctrineEventsPass();
         $pass->process($container);
 
         self::assertCount(1, $tags = $def->getTag('doctrine.event_listener'));
