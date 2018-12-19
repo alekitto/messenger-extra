@@ -20,7 +20,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  */
 class DbalTransportFactory implements TransportFactoryInterface
 {
-    private const DBAL_SUPPORTED_SCHEMES = [
+    public const DBAL_SUPPORTED_SCHEMES = [
         'db2',
         'mssql',
         'mysql',

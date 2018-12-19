@@ -3,9 +3,11 @@
 namespace Kcs\MessengerExtra\DependencyInjection\Compiler;
 
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
+use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\UuidInterface;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -17,13 +19,25 @@ class CheckDependencyPass implements CompilerPassInterface
     public function process(ContainerBuilder $container): void
     {
         foreach ($container->findTaggedServiceIds('messenger.receiver') as $serviceId => $tags) {
-            $service = $container->get($serviceId);
+            $service = $container->getDefinition($serviceId);
+            $url = $container->resolveEnvPlaceholders($service->getArgument(0), true);
+            $urlParams = \parse_url($url);
 
-            if ($service instanceof DbalTransport && ! \class_exists(UuidBinaryType::class)) {
+            if (false === $urlParams) {
+                throw new InvalidConfigurationException(\sprintf('"%s" is not a valid URL', $url));
+            }
+
+            $scheme = $urlParams['scheme'] ?? null;
+            if (null === $scheme) {
+                return;
+            }
+
+            if (('doctrine' === $scheme || \in_array($scheme, DbalTransportFactory::DBAL_SUPPORTED_SCHEMES, true))
+                && ! \class_exists(UuidBinaryType::class)) {
                 throw new \LogicException('Please install ramsey/uuid-doctrine package to use dbal transport');
             }
 
-            if ($service instanceof MongoTransport && ! \interface_exists(UuidInterface::class)) {
+            if ('mongodb' === $scheme && ! \interface_exists(UuidInterface::class)) {
                 throw new \LogicException('Please install ramsey/uuid package to use mongodb transport');
             }
         }
