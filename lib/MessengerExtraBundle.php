@@ -20,7 +20,7 @@ class MessengerExtraBundle extends Bundle
         ;
 
         if ($container->getParameter('kernel.debug')) {
-            $container->addCompilerPass(new Compiler\CheckDependencyPass(), PassConfig::TYPE_AFTER_REMOVING);
+//            $container->addCompilerPass(new Compiler\CheckDependencyPass(), PassConfig::TYPE_AFTER_REMOVING);
         }
     }
 
