@@ -34,7 +34,7 @@ class MongoTransportFactory implements TransportFactoryInterface
         }
 
         [$databaseName, $tableName] = \explode('/', $path, 2) + ['default', 'messenger'];
-        unset($params['path']);
+        $params['path'] = '/';
 
         \parse_str($params['query'] ?? '', $opts);
         $options = \array_merge($opts, $options, [
