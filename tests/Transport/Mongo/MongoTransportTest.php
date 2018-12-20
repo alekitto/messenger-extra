@@ -2,16 +2,7 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
-use Doctrine\DBAL\Cache\ArrayStatement;
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Query\QueryBuilder;
-use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
@@ -23,10 +14,6 @@ use MongoDB\Database;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
-use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Messenger\Envelope;
 
 class MongoTransportTest extends TestCase
@@ -136,7 +123,7 @@ class MongoTransportTest extends TestCase
 
         try {
             $this->transport->receive(function (?Envelope $envelope = null) use (&$catch) {
-                $catch = $envelope !== null;
+                $catch = null !== $envelope;
                 throw new InterruptException('Ok');
             });
         } catch (InterruptException $e) {

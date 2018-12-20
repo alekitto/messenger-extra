@@ -2,9 +2,7 @@
 
 namespace Kcs\MessengerExtra\DependencyInjection\Compiler;
 
-use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
-use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -14,7 +12,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 class CheckDependencyPass implements CompilerPassInterface
 {
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function process(ContainerBuilder $container): void
     {

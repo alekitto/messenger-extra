@@ -109,9 +109,9 @@ class MongoReceiver implements ReceiverInterface
                             ['delivery_id' => ['$exists' => false]],
                             ['delivery_id' => null],
                             ['redeliver_at' => ['$lte' => $now]],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             [
                 '$set' => [
@@ -129,7 +129,7 @@ class MongoReceiver implements ReceiverInterface
             return null;
         }
 
-        if (empty($message['time_to_live']) || $message['time_to_live'] > time()) {
+        if (empty($message['time_to_live']) || $message['time_to_live'] > \time()) {
             return [
                 $message,
                 $this->serializer->decode([

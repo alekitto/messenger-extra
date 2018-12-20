@@ -9,11 +9,7 @@ if (! \file_exists($autoload)) {
 
 require_once $autoload;
 
-use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Transport\Mongo\MongoReceiver;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;

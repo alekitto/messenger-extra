@@ -111,11 +111,11 @@ TXT
     public function testItSupportsTimeoutAndTicksNullMessagesToTheHandler(): void
     {
         $serializer = new Serializer(
-            new SerializerComponent\Serializer(array(
-                new SerializerComponent\Normalizer\ObjectNormalizer()
-            ), array(
-                'json' => new SerializerComponent\Encoder\JsonEncoder()
-            ))
+            new SerializerComponent\Serializer([
+                new SerializerComponent\Normalizer\ObjectNormalizer(),
+            ], [
+                'json' => new SerializerComponent\Encoder\JsonEncoder(),
+            ])
         );
 
         $factory = new DbalTransportFactory(null, $serializer);
@@ -124,7 +124,7 @@ TXT
 
         $receivedMessages = 0;
         $transport->receive(function (?Envelope $envelope) use ($transport, &$receivedMessages) {
-            $this->assertNull($envelope);
+            self::assertNull($envelope);
 
             if (2 === ++$receivedMessages) {
                 $transport->stop();

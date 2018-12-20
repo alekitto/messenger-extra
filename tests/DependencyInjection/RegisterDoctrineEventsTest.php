@@ -11,9 +11,9 @@ class RegisterDoctrineEventsTest extends TestCase
 {
     public function provideNonDoctrineUrl(): iterable
     {
-        yield [ 'null:' ];
-        yield [ '/just_a_path' ];
-        yield [ 'not_an_url' ];
+        yield ['null:'];
+        yield ['/just_a_path'];
+        yield ['not_an_url'];
     }
 
     /**
