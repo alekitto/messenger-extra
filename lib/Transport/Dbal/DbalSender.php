@@ -68,7 +68,7 @@ class DbalSender implements SenderInterface
 
         if ($message instanceof DelayedMessageInterface) {
             $timestamp = \microtime(true) + ($message->getDelay() / 1000);
-            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', (string) $timestamp);
+            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', \sprintf('%.6f', $timestamp));
         }
 
         if ($message instanceof PriorityAwareMessageInterface) {
