@@ -15,7 +15,6 @@ Supports delayed, prioritized and expiring messages (TTL).
 
 The dsn supports the following schemes:
 
-- `doctrine` to use a doctrine ORM existing connection
 - `db2`
 - `mssql`
 - `mysql`
@@ -25,6 +24,17 @@ The dsn supports the following schemes:
 - `pgsql`
 - `sqlite`
 - `sqlite3`
+
+### Doctrine ORM
+
+An existing ORM connection can be used with `doctrine` scheme.
+
+For example `doctrine://default/queue` will use the `default` doctrine
+connection with the `queue` table.
+
+The `doctrine` scheme will also register a `postGenerateSchema`
+event listener that will create the correct table during a schema update
+(or migration if using DoctrineMigrations)
 
 ### Mongo
 
@@ -37,7 +47,7 @@ Use DSN with `mongodb` scheme with `/database/collection` path
 
 ### Null
 
-Useful for testing environments, when no message should be dispatched.
+Useful for testing environments, where no message should be dispatched.
 
 ## Messages utilities
 
