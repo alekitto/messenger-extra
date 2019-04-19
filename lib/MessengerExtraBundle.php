@@ -16,6 +16,7 @@ class MessengerExtraBundle extends Bundle
     public function build(ContainerBuilder $container): void
     {
         $container
+            ->addCompilerPass(new Compiler\AddSerializerAliasPass())
             ->addCompilerPass(new Compiler\RegisterDoctrineEventsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50)
             ->addCompilerPass(new Compiler\SerializerContextConfigurationPass())
         ;
