@@ -64,7 +64,7 @@ class DbalTransport implements TransportInterface
             return;
         }
 
-        $this->_createTable($schema);
+        $this->createTable();
     }
 
     /**

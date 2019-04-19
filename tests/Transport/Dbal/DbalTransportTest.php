@@ -42,19 +42,41 @@ class DbalTransportTest extends TestCase
      */
     private $transport;
 
-    protected function setUp()
+    /**
+     * {@inheritDoc}
+     */
+    protected function setUp(): void
     {
         $this->em = $this->prophesize(EntityManagerInterface::class);
         $this->connection = $this->prophesize(Connection::class);
+        $this->em->getConnection()->willReturn($this->connection);
         $this->transport = new DbalTransport($this->connection->reveal(), null, ['table_name' => 'messenger']);
     }
 
     public function testPostGenerateSchema(): void
     {
-        $event = new GenerateSchemaEventArgs($this->em->reveal(), new Schema());
+        $schema = new Schema();
+        $schemaManager = $this->prophesize(AbstractSchemaManager::class);
+        $this->connection->connect()->willReturn();
+        $this->connection->getSchemaManager()->willReturn($schemaManager);
+        $schemaManager->createSchema()->willReturn($schema);
+        $schemaManager->createTable(Argument::type(Table::class))->shouldBeCalled();
+
+        $event = new GenerateSchemaEventArgs($this->em->reveal(), $schema);
         $this->transport->postGenerateSchema($event);
 
         self::assertTrue($event->getSchema()->hasTable('messenger'));
+    }
+
+    public function testPostGenerateSchemaShouldNotActOnAlreadyCreatedTable(): void
+    {
+        $schema = $this->prophesize(Schema::class);
+        $schema->hasTable('messenger')->willReturn(true);
+
+        $event = new GenerateSchemaEventArgs($this->em->reveal(), $schema->reveal());
+        $this->transport->postGenerateSchema($event);
+
+        $this->connection->getSchemaManager()->shouldNotBeCalled();
     }
 
     public function testSend(): void
