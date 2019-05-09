@@ -15,7 +15,6 @@
         "mongodb/mongodb": "^1.4",
         "phpunit/phpunit": "^7.5",
         "ramsey/uuid": "^3.8",
-        "ramsey/uuid-doctrine": "^1.5",
         "symfony/framework-bundle": "^4.2",
         "symfony/process": "^4.2",
         "symfony/property-access": "^4.2",

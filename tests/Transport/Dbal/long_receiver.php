@@ -10,10 +10,7 @@ if (! \file_exists($autoload)) {
 require_once $autoload;
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Transport\Dbal\DbalReceiver;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
@@ -25,13 +22,6 @@ use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 $serializer = new Serializer(
     new SerializerComponent\Serializer([new ObjectNormalizer()], ['json' => new JsonEncoder()])
 );
-
-if (! Type::hasType(UuidBinaryType::NAME)) {
-    Type::addType(UuidBinaryType::NAME, UuidBinaryType::class);
-}
-if (! Type::hasType(UuidBinaryOrderedTimeType::NAME)) {
-    Type::addType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class);
-}
 
 $connection = DriverManager::getConnection(['url' => \getenv('DSN')]);
 $receiver = new DbalReceiver($connection, 'messenger', $serializer);

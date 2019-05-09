@@ -7,8 +7,6 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -118,7 +116,7 @@ class DbalTransport implements TransportInterface
     private function _createTable(Schema $schema): Table
     {
         $table = $schema->createTable($this->options['table_name']);
-        $table->addColumn('id', UuidBinaryOrderedTimeType::NAME);
+        $table->addColumn('id', Type::BINARY, [ 'length' => 16, 'fixed' => true ]);
         $table->addColumn('published_at', Type::DATETIMETZ_IMMUTABLE);
 
         $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
@@ -131,7 +129,7 @@ class DbalTransport implements TransportInterface
         $table->addColumn('properties', Type::JSON);
         $table->addColumn('priority', Type::INTEGER);
 
-        $table->addColumn('delivery_id', UuidBinaryType::NAME)
+        $table->addColumn('delivery_id', Type::BINARY, [ 'length' => 16, 'fixed' => true ])
             ->setNotnull(false);
         $table->addColumn('redeliver_after', Type::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);

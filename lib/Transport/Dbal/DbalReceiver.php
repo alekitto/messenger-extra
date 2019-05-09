@@ -4,12 +4,11 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\Types\DateTimeTzImmutableType;
 use Doctrine\DBAL\Types\Type;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
+use Ramsey\Uuid\Codec\OrderedTimeCodec;
+use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidInterface;
+use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -42,11 +41,6 @@ class DbalReceiver implements ReceiverInterface
     private $shouldStop;
 
     /**
-     * @var DateTimeTzImmutableType
-     */
-    private $dateTimeType;
-
-    /**
      * @var float
      */
     private $redeliverMessagesLastExecutedAt;
@@ -56,14 +50,18 @@ class DbalReceiver implements ReceiverInterface
      */
     private $removeExpiredMessagesLastExecutedAt;
 
+    /**
+     * @var StringCodec
+     */
+    private $codec;
+
     public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
         $this->shouldStop = false;
-
-        $this->dateTimeType = Type::getType(Type::DATETIMETZ_IMMUTABLE);
+        $this->codec = new StringCodec((new UuidFactory())->getUuidBuilder());
     }
 
     /**
@@ -117,7 +115,7 @@ class DbalReceiver implements ReceiverInterface
      */
     private function fetchMessage(): ?array
     {
-        $deliveryId = Uuid::uuid4();
+        $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
         $endAt = \microtime(true) + 0.2; // add 200ms
 
         $select = $this->connection->createQueryBuilder()
@@ -136,7 +134,7 @@ class DbalReceiver implements ReceiverInterface
             ->set('redeliver_after', ':redeliverAfter')
             ->andWhere('id = :messageId')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter(':deliveryId', $deliveryId, UuidBinaryType::NAME)
+            ->setParameter(':deliveryId', $deliveryId, ParameterType::LARGE_OBJECT)
             ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
         ;
 
@@ -154,7 +152,7 @@ class DbalReceiver implements ReceiverInterface
                     ->select('*')
                     ->from($this->tableName)
                     ->andWhere('delivery_id = :deliveryId')
-                    ->setParameter(':deliveryId', $deliveryId, UuidBinaryType::NAME)
+                    ->setParameter(':deliveryId', $deliveryId, ParameterType::LARGE_OBJECT)
                     ->setMaxResults(1)
                     ->execute()
                     ->fetch()
@@ -198,7 +196,7 @@ class DbalReceiver implements ReceiverInterface
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
             ->setParameter(':now', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
-            ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
+            ->setParameter(':deliveryId', null)
             ->execute()
         ;
 
@@ -249,7 +247,7 @@ class DbalReceiver implements ReceiverInterface
             ->set('delivery_id', ':deliveryId')
             ->andWhere('id = :id')
             ->setParameter(':id', $id, ParameterType::LARGE_OBJECT)
-            ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
+            ->setParameter(':deliveryId', null)
             ->execute()
         ;
     }

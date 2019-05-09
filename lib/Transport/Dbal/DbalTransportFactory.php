@@ -4,10 +4,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Utils\UrlUtils;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
@@ -46,14 +43,6 @@ class DbalTransportFactory implements TransportFactoryInterface
     {
         $this->managerRegistry = $managerRegistry;
         $this->serializer = $serializer;
-
-        if (! Type::hasType(UuidBinaryType::NAME)) {
-            Type::addType(UuidBinaryType::NAME, UuidBinaryType::class);
-        }
-
-        if (! Type::hasType(UuidBinaryOrderedTimeType::NAME)) {
-            Type::addType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class);
-        }
     }
 
     public function createTransport(string $dsn, array $options): TransportInterface

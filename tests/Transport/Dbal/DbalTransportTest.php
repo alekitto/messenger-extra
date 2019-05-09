@@ -21,11 +21,8 @@ use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Ramsey\Uuid\Codec\OrderedTimeCodec;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
-use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Messenger\Envelope;
 
 class DbalTransportTest extends TestCase
@@ -129,7 +126,7 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE (redeliver_after < :now) AND (delivery_id IS NOT NULL)',
             Argument::any(),
-            [':now' => Type::DATETIMETZ_IMMUTABLE, ':deliveryId' => UuidBinaryType::NAME]
+            [':now' => Type::DATETIMETZ_IMMUTABLE]
         )->shouldBeCalled();
 
         $this->connection->getDatabasePlatform()->willReturn($platform = $this->prophesize(AbstractPlatform::class));
@@ -158,7 +155,7 @@ class DbalTransportTest extends TestCase
                 return true;
             }),
             [
-                ':deliveryId' => UuidBinaryType::NAME,
+                ':deliveryId' => ParameterType::LARGE_OBJECT,
                 ':redeliverAfter' => Type::DATETIMETZ_IMMUTABLE,
                 ':messageId' => ParameterType::LARGE_OBJECT,
             ]
@@ -173,7 +170,7 @@ class DbalTransportTest extends TestCase
 
                 return true;
             }),
-            [':deliveryId' => UuidBinaryType::NAME]
+            [':deliveryId' => ParameterType::LARGE_OBJECT]
         )
             ->willReturn(new ArrayStatement([
                 [
@@ -189,11 +186,11 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE id = :id',
             [':id' => $messageId, ':deliveryId' => null],
-            [':id' => ParameterType::LARGE_OBJECT, ':deliveryId' => UuidBinaryType::NAME]
+            [':id' => ParameterType::LARGE_OBJECT]
         )->shouldBeCalled();
 
         try {
-            $this->transport->receive(function () {
+            $this->transport->receive(static function () {
                 throw new InterruptException('Ok');
             });
         } catch (InterruptException $e) {

@@ -8,8 +8,9 @@ use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
-use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
+use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
@@ -37,11 +38,18 @@ class DbalSender implements SenderInterface
      */
     private $connection;
 
+    /**
+     * @var OrderedTimeCodec
+     */
+    private $codec;
+
     public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
+
+        $this->codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
     }
 
     /**
@@ -52,10 +60,8 @@ class DbalSender implements SenderInterface
         $message = $envelope->getMessage();
         $encodedMessage = $this->serializer->encode($envelope);
 
-        $uuidType = Type::getType(UuidBinaryOrderedTimeType::NAME);
-
         $values = [
-            'id' => $uuidType->convertToDatabaseValue(Uuid::uuid1(), $this->connection->getDatabasePlatform()),
+            'id' => $this->codec->encodeBinary(Uuid::uuid1()),
             'published_at' => new \DateTimeImmutable(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'],
