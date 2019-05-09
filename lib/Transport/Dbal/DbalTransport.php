@@ -123,7 +123,7 @@ class DbalTransport implements TransportInterface
 
         $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);
-        $table->addColumn('time_to_live', Type::INTEGER)
+        $table->addColumn('time_to_live', Type::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);
 
         $table->addColumn('body', Type::TEXT);

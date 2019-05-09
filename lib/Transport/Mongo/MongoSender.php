@@ -57,7 +57,7 @@ class MongoSender implements SenderInterface
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
-            $values['time_to_live'] = $message->getTtl();
+            $values['time_to_live'] = \time() + $message->getTtl();
         }
 
         if ($message instanceof DelayedMessageInterface) {

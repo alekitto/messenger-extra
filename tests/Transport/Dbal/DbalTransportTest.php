@@ -78,7 +78,7 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('headers', ['type' => \get_class($message)]),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
-            Argument::withEntry('time_to_live', Argument::type('int')),
+            Argument::withEntry('time_to_live', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('delayed_until', Argument::type(\DateTimeImmutable::class))
         ), [
             'id' => UuidBinaryOrderedTimeType::NAME,
@@ -87,7 +87,7 @@ class DbalTransportTest extends TestCase
             'headers' => Type::JSON,
             'properties' => Type::JSON,
             'priority' => Type::INTEGER,
-            'time_to_live' => Type::INTEGER,
+            'time_to_live' => Type::DATETIMETZ_IMMUTABLE,
             'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
         ])
             ->shouldBeCalled();

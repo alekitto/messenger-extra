@@ -170,12 +170,8 @@ class DbalReceiver implements ReceiverInterface
                     continue;
                 }
 
-                /** @var \DateTimeImmutable $publishedAt */
-                $publishedAt = $this->dateTimeType
-                    ->convertToPHPValue($deliveredMessage['published_at'], $this->connection->getDatabasePlatform());
-
                 if (empty($deliveredMessage['time_to_live']) ||
-                    $publishedAt->modify('+ '.$deliveredMessage['time_to_live'].' seconds') > new \DateTimeImmutable()) {
+                    new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()) {
                     return [
                         $id,
                         $this->serializer->decode([

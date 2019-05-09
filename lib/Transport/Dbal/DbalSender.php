@@ -63,7 +63,7 @@ class DbalSender implements SenderInterface
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
-            $values['time_to_live'] = $message->getTtl();
+            $values['time_to_live'] = (new \DateTimeImmutable())->modify('+ '.$message->getTtl().' seconds');
         }
 
         if ($message instanceof DelayedMessageInterface) {
@@ -82,7 +82,7 @@ class DbalSender implements SenderInterface
             'headers' => Type::JSON,
             'properties' => Type::JSON,
             'priority' => Type::INTEGER,
-            'time_to_live' => Type::INTEGER,
+            'time_to_live' => Type::DATETIMETZ_IMMUTABLE,
             'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
         ]);
 
