@@ -40,9 +40,7 @@ jobs:
           env: DB=sqlite
         - stage: Test
           php: '7.3'
-          env:
-            - DB=sqlite
-            - SYMFONY_VERSION='dev-master'
+          env: SYMFONY_VERSION='dev-master'
         - stage: Test
           php: '7.3'
           env: DB=sqlite SYMFONY_SERIALIZER=1

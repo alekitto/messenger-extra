@@ -85,7 +85,7 @@ class DbalSender implements SenderInterface
         }
 
         $this->connection->insert($this->tableName, $values, [
-            'id' => ParameterType::LARGE_OBJECT,
+            'id' => ParameterType::BINARY,
             'published_at' => Type::DATETIMETZ_IMMUTABLE,
             'body' => Type::TEXT,
             'headers' => Type::JSON,

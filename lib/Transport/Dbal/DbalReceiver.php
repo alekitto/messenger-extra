@@ -134,7 +134,7 @@ class DbalReceiver implements ReceiverInterface
             ->set('redeliver_after', ':redeliverAfter')
             ->andWhere('id = :messageId')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter(':deliveryId', $deliveryId, ParameterType::LARGE_OBJECT)
+            ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
             ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
         ;
 
@@ -145,14 +145,18 @@ class DbalReceiver implements ReceiverInterface
             }
 
             $id = $result['id'];
-            $update->setParameter(':messageId', $id, ParameterType::LARGE_OBJECT);
+            if (\is_resource($id)) {
+                $id = \stream_get_contents($id);
+            }
+
+            $update->setParameter(':messageId', $id, ParameterType::BINARY);
 
             if ($update->execute()) {
                 $deliveredMessage = $this->connection->createQueryBuilder()
                     ->select('*')
                     ->from($this->tableName)
                     ->andWhere('delivery_id = :deliveryId')
-                    ->setParameter(':deliveryId', $deliveryId, ParameterType::LARGE_OBJECT)
+                    ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
                     ->setMaxResults(1)
                     ->execute()
                     ->fetch()
@@ -210,7 +214,7 @@ class DbalReceiver implements ReceiverInterface
      */
     private function acknowledge(string $id): void
     {
-        $this->connection->delete($this->tableName, ['id' => $id], ['id' => ParameterType::LARGE_OBJECT]);
+        $this->connection->delete($this->tableName, ['id' => $id], ['id' => ParameterType::BINARY]);
     }
 
     /**
@@ -246,7 +250,7 @@ class DbalReceiver implements ReceiverInterface
             ->update($this->tableName)
             ->set('delivery_id', ':deliveryId')
             ->andWhere('id = :id')
-            ->setParameter(':id', $id, ParameterType::LARGE_OBJECT)
+            ->setParameter(':id', $id, ParameterType::BINARY)
             ->setParameter(':deliveryId', null)
             ->execute()
         ;

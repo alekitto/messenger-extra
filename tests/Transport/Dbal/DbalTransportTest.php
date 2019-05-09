@@ -83,7 +83,7 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('time_to_live', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('delayed_until', Argument::type(\DateTimeImmutable::class))
         ), [
-            'id' => ParameterType::LARGE_OBJECT,
+            'id' => ParameterType::BINARY,
             'published_at' => Type::DATETIMETZ_IMMUTABLE,
             'body' => Type::TEXT,
             'headers' => Type::JSON,
@@ -155,9 +155,9 @@ class DbalTransportTest extends TestCase
                 return true;
             }),
             [
-                ':deliveryId' => ParameterType::LARGE_OBJECT,
+                ':deliveryId' => ParameterType::BINARY,
                 ':redeliverAfter' => Type::DATETIMETZ_IMMUTABLE,
-                ':messageId' => ParameterType::LARGE_OBJECT,
+                ':messageId' => ParameterType::BINARY,
             ]
         )
             ->willReturn(1)
@@ -170,7 +170,7 @@ class DbalTransportTest extends TestCase
 
                 return true;
             }),
-            [':deliveryId' => ParameterType::LARGE_OBJECT]
+            [':deliveryId' => ParameterType::BINARY]
         )
             ->willReturn(new ArrayStatement([
                 [
@@ -186,7 +186,7 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE id = :id',
             [':id' => $messageId, ':deliveryId' => null],
-            [':id' => ParameterType::LARGE_OBJECT]
+            [':id' => ParameterType::BINARY]
         )->shouldBeCalled();
 
         try {
