@@ -50,6 +50,7 @@ class DbalTransportFactory implements TransportFactoryInterface
         if (! Type::hasType(UuidBinaryType::NAME)) {
             Type::addType(UuidBinaryType::NAME, UuidBinaryType::class);
         }
+
         if (! Type::hasType(UuidBinaryOrderedTimeType::NAME)) {
             Type::addType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class);
         }
@@ -106,7 +107,7 @@ class DbalTransportFactory implements TransportFactoryInterface
                 [$databaseName, $tableName] = \explode('/', $path, 2) + [null, 'messenger'];
             }
 
-            $params['path'] = $databaseName;
+            $params['path'] = '/'.$databaseName;
 
             \parse_str($params['query'] ?? '', $opts);
             $options = \array_merge($opts, $options, ['table_name' => $tableName]);

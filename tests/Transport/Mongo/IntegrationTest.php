@@ -3,8 +3,10 @@
 namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
 use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
+use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory;
 use MongoDB\Client;
+use MongoDB\Driver\Exception\ConnectionTimeoutException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
@@ -17,17 +19,12 @@ use Symfony\Component\Serializer as SerializerComponent;
  */
 class IntegrationTest extends TestCase
 {
+    /**
+     * @var MongoTransport
+     */
+    private $transport;
+
     protected function setUp(): void
-    {
-        $this->dropCollection();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->dropCollection();
-    }
-
-    public function testSendsAndReceivesMessages(): void
     {
         $serializer = new Serializer(
             new SerializerComponent\Serializer([
@@ -38,17 +35,31 @@ class IntegrationTest extends TestCase
         );
 
         $factory = new MongoTransportFactory($serializer);
-        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
+        $this->transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
 
-        $transport->send($first = new Envelope(new DummyMessage('First')));
-        $transport->send($second = new Envelope(new DummyMessage('Second')));
+        try {
+            $this->dropCollection();
+        } catch (ConnectionTimeoutException $e) {
+            $this->markTestSkipped('Mongodb not available');
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropCollection();
+    }
+
+    public function testSendsAndReceivesMessages(): void
+    {
+        $this->transport->send($first = new Envelope(new DummyMessage('First')));
+        $this->transport->send($second = new Envelope(new DummyMessage('Second')));
 
         $receivedMessages = 0;
-        $transport->receive(function (?Envelope $envelope) use ($transport, &$receivedMessages, $first, $second) {
+        $this->transport->receive(function (?Envelope $envelope) use (&$receivedMessages, $first, $second) {
             self::assertEquals(0 === $receivedMessages ? $first : $second, $envelope);
 
             if (2 === ++$receivedMessages) {
-                $transport->stop();
+                $this->transport->stop();
             }
 
             return $envelope;
@@ -59,18 +70,7 @@ class IntegrationTest extends TestCase
 
     public function testItReceivesSignals(): void
     {
-        $serializer = new Serializer(
-            new SerializerComponent\Serializer([
-                new SerializerComponent\Normalizer\ObjectNormalizer(),
-            ], [
-                'json' => new SerializerComponent\Encoder\JsonEncoder(),
-            ])
-        );
-
-        $factory = new MongoTransportFactory($serializer);
-        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
-
-        $transport->send(new Envelope(new DummyMessage('Hello')));
+        $this->transport->send(new Envelope(new DummyMessage('Hello')));
 
         $amqpReadTimeout = 30;
         $process = new PhpProcess(\file_get_contents(__DIR__.'/long_receiver.php'), null, [
@@ -109,23 +109,12 @@ TXT
      */
     public function testItSupportsTimeoutAndTicksNullMessagesToTheHandler(): void
     {
-        $serializer = new Serializer(
-            new SerializerComponent\Serializer([
-                new SerializerComponent\Normalizer\ObjectNormalizer(),
-            ], [
-                'json' => new SerializerComponent\Encoder\JsonEncoder(),
-            ])
-        );
-
-        $factory = new MongoTransportFactory($serializer);
-        $transport = $factory->createTransport('mongodb://localhost:27017/default/queue', []);
-
         $receivedMessages = 0;
-        $transport->receive(function (?Envelope $envelope) use ($transport, &$receivedMessages) {
+        $this->transport->receive(function (?Envelope $envelope) use (&$receivedMessages) {
             self::assertNull($envelope);
 
             if (2 === ++$receivedMessages) {
-                $transport->stop();
+                $this->transport->stop();
             }
         });
 

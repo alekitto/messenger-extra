@@ -17,9 +17,9 @@ class UrlUtils
 
         return
             (isset($url['scheme']) ? $url['scheme'].'://' : '').
+            ($authority ? $authority.'@' : '').
             ($url['host'] ?? '').
             (isset($url['port']) ? ':'.$url['port'] : '').
-            ($authority ? $authority.'@' : '').
             ($url['path'] ?? '').
             (isset($url['query']) ? '?'.$url['query'] : '').
             (isset($url['fragment']) ? '#'.$url['fragment'] : '')
