@@ -3,6 +3,7 @@
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
@@ -51,8 +52,10 @@ class DbalSender implements SenderInterface
         $message = $envelope->getMessage();
         $encodedMessage = $this->serializer->encode($envelope);
 
+        $uuidType = Type::getType(UuidBinaryOrderedTimeType::NAME);
+
         $values = [
-            'id' => Uuid::uuid1(),
+            'id' => $uuidType->convertToDatabaseValue(Uuid::uuid1(), $this->connection->getDatabasePlatform()),
             'published_at' => new \DateTimeImmutable(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'],
@@ -76,7 +79,7 @@ class DbalSender implements SenderInterface
         }
 
         $this->connection->insert($this->tableName, $values, [
-            'id' => UuidBinaryOrderedTimeType::NAME,
+            'id' => ParameterType::LARGE_OBJECT,
             'published_at' => Type::DATETIMETZ_IMMUTABLE,
             'body' => Type::TEXT,
             'headers' => Type::JSON,

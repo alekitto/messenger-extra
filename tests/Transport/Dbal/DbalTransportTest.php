@@ -4,6 +4,7 @@ namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
 
 use Doctrine\DBAL\Cache\ArrayStatement;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -19,9 +20,11 @@ use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
+use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
 use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidFactory;
 use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Messenger\Envelope;
 
@@ -71,8 +74,10 @@ class DbalTransportTest extends TestCase
             }
         };
 
+        $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
+
         $this->connection->insert('messenger', Argument::allOf(
-            Argument::withEntry('id', Argument::type(UuidInterface::class)),
+            Argument::withEntry('id', Argument::type('string')),
             Argument::withEntry('published_at', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('body', '{"delay":5000,"ttl":10}'),
             Argument::withEntry('headers', ['type' => \get_class($message)]),
@@ -81,7 +86,7 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('time_to_live', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('delayed_until', Argument::type(\DateTimeImmutable::class))
         ), [
-            'id' => UuidBinaryOrderedTimeType::NAME,
+            'id' => ParameterType::LARGE_OBJECT,
             'published_at' => Type::DATETIMETZ_IMMUTABLE,
             'body' => Type::TEXT,
             'headers' => Type::JSON,
@@ -129,7 +134,8 @@ class DbalTransportTest extends TestCase
 
         $this->connection->getDatabasePlatform()->willReturn($platform = $this->prophesize(AbstractPlatform::class));
 
-        $messageId = Uuid::uuid1();
+        $codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
+        $messageId = $codec->encodeBinary(Uuid::uuid1());
         $this->connection->executeQuery(
             'SELECT id FROM messenger WHERE (delayed_until IS NULL OR delayed_until <= :delayedUntil) AND (delivery_id IS NULL) ORDER BY priority asc, published_at asc LIMIT 1',
             Argument::any(),
@@ -154,7 +160,7 @@ class DbalTransportTest extends TestCase
             [
                 ':deliveryId' => UuidBinaryType::NAME,
                 ':redeliverAfter' => Type::DATETIMETZ_IMMUTABLE,
-                ':messageId' => UuidBinaryOrderedTimeType::NAME,
+                ':messageId' => ParameterType::LARGE_OBJECT,
             ]
         )
             ->willReturn(1)
@@ -183,7 +189,7 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE id = :id',
             [':id' => $messageId, ':deliveryId' => null],
-            [':id' => UuidBinaryOrderedTimeType::NAME, ':deliveryId' => UuidBinaryType::NAME]
+            [':id' => ParameterType::LARGE_OBJECT, ':deliveryId' => UuidBinaryType::NAME]
         )->shouldBeCalled();
 
         try {

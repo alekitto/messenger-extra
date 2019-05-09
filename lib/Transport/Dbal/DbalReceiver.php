@@ -3,6 +3,7 @@
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\DateTimeTzImmutableType;
 use Doctrine\DBAL\Types\Type;
 use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
@@ -46,11 +47,6 @@ class DbalReceiver implements ReceiverInterface
     private $dateTimeType;
 
     /**
-     * @var UuidBinaryOrderedTimeType
-     */
-    private $uuidType;
-
-    /**
      * @var float
      */
     private $redeliverMessagesLastExecutedAt;
@@ -68,7 +64,6 @@ class DbalReceiver implements ReceiverInterface
         $this->shouldStop = false;
 
         $this->dateTimeType = Type::getType(Type::DATETIMETZ_IMMUTABLE);
-        $this->uuidType = Type::getType(UuidBinaryOrderedTimeType::NAME);
     }
 
     /**
@@ -151,8 +146,8 @@ class DbalReceiver implements ReceiverInterface
                 return null;
             }
 
-            $id = $this->uuidType->convertToPHPValue($result['id'], $this->connection->getDatabasePlatform());
-            $update->setParameter(':messageId', $id, UuidBinaryOrderedTimeType::NAME);
+            $id = $result['id'];
+            $update->setParameter(':messageId', $id, ParameterType::LARGE_OBJECT);
 
             if ($update->execute()) {
                 $deliveredMessage = $this->connection->createQueryBuilder()
@@ -213,11 +208,11 @@ class DbalReceiver implements ReceiverInterface
     /**
      * Mark a message as acknowledged (and deletes it).
      *
-     * @param UuidInterface $id
+     * @param string $id
      */
-    private function acknowledge(UuidInterface $id): void
+    private function acknowledge(string $id): void
     {
-        $this->connection->delete($this->tableName, ['id' => $id], ['id' => UuidBinaryOrderedTimeType::NAME]);
+        $this->connection->delete($this->tableName, ['id' => $id], ['id' => ParameterType::LARGE_OBJECT]);
     }
 
     /**
@@ -245,15 +240,15 @@ class DbalReceiver implements ReceiverInterface
     /**
      * Redeliver a single message.
      *
-     * @param UuidInterface $id
+     * @param string $id
      */
-    private function redeliver(UuidInterface $id): void
+    private function redeliver(string $id): void
     {
         $this->connection->createQueryBuilder()
             ->update($this->tableName)
             ->set('delivery_id', ':deliveryId')
             ->andWhere('id = :id')
-            ->setParameter(':id', $id, UuidBinaryOrderedTimeType::NAME)
+            ->setParameter(':id', $id, ParameterType::LARGE_OBJECT)
             ->setParameter(':deliveryId', null, UuidBinaryType::NAME)
             ->execute()
         ;
