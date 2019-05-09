@@ -239,7 +239,7 @@ class DbalReceiver implements ReceiverInterface
             ->delete($this->tableName)
             ->andWhere('(time_to_live IS NOT NULL) AND (time_to_live < :now)')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter(':now', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':now', (new \DateTimeImmutable())->getTimestamp(), Type::INTEGER)
             ->execute()
         ;
 

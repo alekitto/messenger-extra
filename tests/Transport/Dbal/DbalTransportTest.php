@@ -117,7 +117,7 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'DELETE FROM messenger WHERE ((time_to_live IS NOT NULL) AND (time_to_live < :now)) AND (delivery_id IS NULL)',
             Argument::any(),
-            [':now' => Type::DATETIMETZ_IMMUTABLE]
+            [':now' => Type::INTEGER]
         )->shouldBeCalled();
 
         // Re-deliver old messages
