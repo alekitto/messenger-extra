@@ -53,8 +53,8 @@ class IntegrationTest extends TestCase
 
     public function testSendsAndReceivesMessages(): void
     {
-        $this->transport->send($first = new Envelope(new DummyMessage('First')));
-        $this->transport->send($second = new Envelope(new DummyMessage('Second')));
+        $this->transport->send(new Envelope($first = new DummyMessage('First')));
+        $this->transport->send(new Envelope($second = new DummyMessage('Second')));
 
         $receivedMessages = 0;
         $worker = new Worker([$this->transport], new MessageBus(), [], $eventDispatcher = new EventDispatcher());
@@ -62,7 +62,7 @@ class IntegrationTest extends TestCase
         $eventDispatcher->addListener(WorkerMessageReceivedEvent::class,
             static function (WorkerMessageReceivedEvent $event) use (&$receivedMessages, $first, $second, $worker) {
                 $envelope = $event->getEnvelope();
-                self::assertEquals(0 === $receivedMessages ? $first : $second, $envelope);
+                self::assertEquals(0 === $receivedMessages ? $first : $second, $envelope->getMessage());
 
                 if (2 === ++$receivedMessages) {
                     $worker->stop();
