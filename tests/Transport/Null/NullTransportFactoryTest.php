@@ -5,6 +5,7 @@ namespace Kcs\MessengerExtra\Tests\Transport\Null;
 use Kcs\MessengerExtra\Transport\Null\NullTransport;
 use Kcs\MessengerExtra\Transport\Null\NullTransportFactory;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 class NullTransportFactoryTest extends TestCase
 {
@@ -21,7 +22,7 @@ class NullTransportFactoryTest extends TestCase
     public function testCreateTransport(): void
     {
         $factory = new NullTransportFactory();
-        $transport = $factory->createTransport('null:', []);
+        $transport = $factory->createTransport('null:', [], $this->prophesize(SerializerInterface::class)->reveal());
 
         self::assertInstanceOf(NullTransport::class, $transport);
     }

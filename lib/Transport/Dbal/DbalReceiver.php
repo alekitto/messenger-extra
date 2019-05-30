@@ -5,10 +5,11 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Type;
-use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -36,11 +37,6 @@ class DbalReceiver implements ReceiverInterface
     private $connection;
 
     /**
-     * @var bool
-     */
-    private $shouldStop;
-
-    /**
      * @var float
      */
     private $redeliverMessagesLastExecutedAt;
@@ -60,52 +56,52 @@ class DbalReceiver implements ReceiverInterface
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
-        $this->shouldStop = false;
         $this->codec = new StringCodec((new UuidFactory())->getUuidBuilder());
     }
 
     /**
      * {@inheritdoc}
      */
-    public function receive(callable $handler): void
+    public function get(): iterable
     {
-        while (! $this->shouldStop) {
-            $this->removeExpiredMessages();
-            $this->redeliverMessages();
+        $this->removeExpiredMessages();
+        $this->redeliverMessages();
 
-            [$id, $envelope] = $this->fetchMessage() ?? [null, null, null];
-            if (null === $envelope) {
-                $handler(null);
+        /** @var Envelope $envelope */
+        [$id, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        if (null === $envelope) {
+            return;
+        }
 
-                \usleep(200000);
-                if (\function_exists('pcntl_signal_dispatch')) {
-                    \pcntl_signal_dispatch();
-                }
+        try {
+            $envelope = $envelope->with(new TransportMessageIdStamp($id));
+            yield $envelope;
 
-                continue;
-            }
+            $this->ack($envelope);
+        } catch (\Throwable $e) {
+            $this->redeliver($id);
 
-            try {
-                $handler($envelope);
-                $this->acknowledge($id);
-            } catch (\Throwable $e) {
-                $this->redeliver($id);
-
-                throw $e;
-            } finally {
-                if (\function_exists('pcntl_signal_dispatch')) {
-                    \pcntl_signal_dispatch();
-                }
-            }
+            throw $e;
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stop(): void
+    public function ack(Envelope $envelope): void
     {
-        $this->shouldStop = true;
+        /** @var TransportMessageIdStamp $messageIdStamp */
+        $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
+
+        $this->connection->delete($this->tableName, ['id' => $messageIdStamp->getId()], ['id' => ParameterType::BINARY]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reject(Envelope $envelope): void
+    {
+        $this->ack($envelope);
     }
 
     /**
@@ -205,16 +201,6 @@ class DbalReceiver implements ReceiverInterface
         ;
 
         $this->redeliverMessagesLastExecutedAt = \microtime(true);
-    }
-
-    /**
-     * Mark a message as acknowledged (and deletes it).
-     *
-     * @param string $id
-     */
-    private function acknowledge(string $id): void
-    {
-        $this->connection->delete($this->tableName, ['id' => $id], ['id' => ParameterType::BINARY]);
     }
 
     /**

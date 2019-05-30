@@ -33,7 +33,7 @@ class DbalTransportFactoryTest extends TestCase
     {
         $this->managerRegistry = $this->prophesize(ManagerRegistry::class);
         $this->serializer = $this->prophesize(SerializerInterface::class);
-        $this->transportFactory = new DbalTransportFactory($this->managerRegistry->reveal(), $this->serializer->reveal());
+        $this->transportFactory = new DbalTransportFactory($this->managerRegistry->reveal());
     }
 
     public function testSupports(): void
@@ -59,7 +59,7 @@ class DbalTransportFactoryTest extends TestCase
         $this->managerRegistry->getConnection('connection_name')
             ->shouldBeCalled()
             ->willReturn($this->prophesize(Connection::class));
-        $transport = $this->transportFactory->createTransport('doctrine://connection_name', []);
+        $transport = $this->transportFactory->createTransport('doctrine://connection_name', [], $this->serializer->reveal());
 
         self::assertInstanceOf(DbalTransport::class, $transport);
     }
@@ -69,8 +69,8 @@ class DbalTransportFactoryTest extends TestCase
      */
     public function testCreateShouldThrowIfNoRegistryIsPassed(): void
     {
-        $transportFactory = new DbalTransportFactory(null, $this->serializer->reveal());
-        $transportFactory->createTransport('doctrine://connection_name', []);
+        $transportFactory = new DbalTransportFactory(null);
+        $transportFactory->createTransport('doctrine://connection_name', [], $this->serializer->reveal());
     }
 
     public function testCreateShouldCreateDatabaseConnection(): void
@@ -78,7 +78,7 @@ class DbalTransportFactoryTest extends TestCase
         $this->managerRegistry->getConnection(Argument::any())
             ->shouldNotBeCalled();
 
-        $transport = $this->transportFactory->createTransport('mysql://localhost/table_name', []);
+        $transport = $this->transportFactory->createTransport('mysql://localhost/table_name', [], $this->serializer->reveal());
         self::assertInstanceOf(DbalTransport::class, $transport);
     }
 
@@ -89,7 +89,7 @@ class DbalTransportFactoryTest extends TestCase
         $this->managerRegistry->getConnection(Argument::any())
             ->shouldNotBeCalled();
 
-        $transport = $this->transportFactory->createTransport('sqlite:///'.__DIR__.'/queue.db/table_name', []);
+        $transport = $this->transportFactory->createTransport('sqlite:///'.__DIR__.'/queue.db/table_name', [], $this->serializer->reveal());
         self::assertInstanceOf(DbalTransport::class, $transport);
 
         $transport->createTable();

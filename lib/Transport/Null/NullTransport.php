@@ -15,17 +15,25 @@ class NullTransport implements TransportInterface
     /**
      * {@inheritdoc}
      */
-    public function receive(callable $handler): void
+    public function get(): iterable
     {
-        // Do nothing
+        return [];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stop(): void
+    public function ack(Envelope $envelope): void
     {
-        // Do nothing
+        // Do nothing.
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reject(Envelope $envelope): void
+    {
+        // Do nothing.
     }
 
     /**

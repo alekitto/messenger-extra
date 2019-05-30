@@ -39,13 +39,12 @@ class DbalTransportFactory implements TransportFactoryInterface
      */
     private $serializer;
 
-    public function __construct(?ManagerRegistry $managerRegistry = null, ?SerializerInterface $serializer = null)
+    public function __construct(?ManagerRegistry $managerRegistry = null)
     {
         $this->managerRegistry = $managerRegistry;
-        $this->serializer = $serializer;
     }
 
-    public function createTransport(string $dsn, array $options): TransportInterface
+    public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
         $dsn = \preg_replace('#^(sqlite3?):///#', '$1://localhost/', $dsn);
         $params = \parse_url($dsn);
@@ -104,7 +103,7 @@ class DbalTransportFactory implements TransportFactoryInterface
             $connection = DriverManager::getConnection(['url' => UrlUtils::buildUrl($params)]);
         }
 
-        return new DbalTransport($connection, $this->serializer, $options);
+        return new DbalTransport($connection, $serializer, $options);
     }
 
     public function supports(string $dsn, array $options): bool

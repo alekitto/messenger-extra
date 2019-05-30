@@ -4,6 +4,8 @@ namespace Kcs\MessengerExtra\Transport\Mongo;
 
 use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -26,11 +28,6 @@ class MongoReceiver implements ReceiverInterface
     private $collection;
 
     /**
-     * @var bool
-     */
-    private $shouldStop;
-
-    /**
      * @var float
      */
     private $removeExpiredMessagesLastExecutedAt;
@@ -39,50 +36,49 @@ class MongoReceiver implements ReceiverInterface
     {
         $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
-        $this->shouldStop = false;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function receive(callable $handler): void
+    public function get(): iterable
     {
-        while (! $this->shouldStop) {
-            $this->removeExpiredMessages();
+        $this->removeExpiredMessages();
 
-            [$message, $envelope] = $this->fetchMessage() ?? [null, null, null];
-            if (null === $envelope) {
-                $handler(null);
+        [$message, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        if (null === $envelope) {
+            return;
+        }
 
-                \usleep(200000);
-                if (\function_exists('pcntl_signal_dispatch')) {
-                    \pcntl_signal_dispatch();
-                }
+        try {
+            $envelope = $envelope->with(new TransportMessageIdStamp($message['_id']));
+            yield $envelope;
 
-                continue;
-            }
+            $this->ack($envelope);
+        } catch (\Throwable $e) {
+            $this->redeliver($message);
 
-            try {
-                $handler($envelope);
-                $this->acknowledge($message);
-            } catch (\Throwable $e) {
-                $this->redeliver($message);
-
-                throw $e;
-            } finally {
-                if (\function_exists('pcntl_signal_dispatch')) {
-                    \pcntl_signal_dispatch();
-                }
-            }
+            throw $e;
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stop(): void
+    public function ack(Envelope $envelope): void
     {
-        $this->shouldStop = true;
+        /** @var TransportMessageIdStamp $messageIdStamp */
+        $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
+
+        $this->collection->deleteOne(['_id' => $messageIdStamp->getId()]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reject(Envelope $envelope): void
+    {
+        $this->ack($envelope);
     }
 
     /**
@@ -158,16 +154,6 @@ class MongoReceiver implements ReceiverInterface
         ]);
 
         $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
-    }
-
-    /**
-     * Mark a message as acknowledged (and deletes it).
-     *
-     * @param array $message
-     */
-    private function acknowledge(array $message): void
-    {
-        $this->collection->deleteOne(['_id' => $message['_id']]);
     }
 
     /**

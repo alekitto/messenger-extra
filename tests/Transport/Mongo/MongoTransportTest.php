@@ -6,7 +6,6 @@ use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
-use Kcs\MessengerExtra\Tests\Fixtures\Exception\InterruptException;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use MongoDB\Client;
 use MongoDB\Collection;
@@ -76,8 +75,6 @@ class MongoTransportTest extends TestCase
 
     public function testReceive(): void
     {
-        $catch = false;
-
         // Delete expired messages
         $this->collection->deleteMany(Argument::type('array'))->willReturn();
 
@@ -106,30 +103,18 @@ class MongoTransportTest extends TestCase
                 'sort' => ['priority' => -1, 'published_at' => 1],
                 'typeMap' => ['root' => 'array', 'document' => 'array'],
             ]
-        )->willReturn($document = [
-            '_id' => 'document_id',
-            'published_at' => \time(),
-            'body' => '{}',
-            'headers' => ['type' => 'stdClass'],
-            'time_to_live' => null,
-        ]);
+        )
+            ->shouldBeCalled()
+            ->willReturn($document = [
+                '_id' => 'document_id',
+                'published_at' => \time(),
+                'body' => '{}',
+                'headers' => ['type' => 'stdClass'],
+                'time_to_live' => null,
+            ]);
 
-        $this->collection->updateOne(['_id' => 'document_id'], [
-            '$set' => ['delivery_id' => null, 'redeliver_at' => null],
-        ])->willReturn();
+        $this->collection->deleteOne(['_id' => 'document_id'])->willReturn();
 
-        // Redeliver message.
-        $this->collection->insertOne($document)->willReturn();
-
-        try {
-            $this->transport->receive(function (?Envelope $envelope = null) use (&$catch) {
-                $catch = null !== $envelope;
-                throw new InterruptException('Ok');
-            });
-        } catch (InterruptException $e) {
-            // All ok!
-        }
-
-        self::assertTrue($catch);
+        \iterator_to_array($this->transport->get());
     }
 }

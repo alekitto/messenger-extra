@@ -44,17 +44,25 @@ class MongoTransport implements TransportInterface
     /**
      * {@inheritdoc}
      */
-    public function receive(callable $handler): void
+    public function get(): iterable
     {
-        ($this->receiver ?? $this->getReceiver())->receive($handler);
+        return $this->getReceiver()->get();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stop(): void
+    public function ack(Envelope $envelope): void
     {
-        ($this->receiver ?? $this->getReceiver())->stop();
+        $this->getReceiver()->ack($envelope);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reject(Envelope $envelope): void
+    {
+        $this->getReceiver()->reject($envelope);
     }
 
     /**

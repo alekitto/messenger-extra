@@ -59,7 +59,7 @@ class MessengerSerializer implements MessengerSerializerInterface
             ContextConverter::toDeserializationContext($context)
         );
 
-        return new Envelope($message, ...\iterator_to_array((function () use ($envelopeItems): \Generator {
+        return new Envelope($message, \iterator_to_array((static function () use ($envelopeItems): \Generator {
             foreach ($envelopeItems as $items) {
                 yield from $items;
             }

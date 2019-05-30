@@ -15,7 +15,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
-use Kcs\MessengerExtra\Tests\Fixtures\Exception\InterruptException;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
@@ -182,19 +181,8 @@ class DbalTransportTest extends TestCase
             ]))
             ->shouldBeCalled();
 
-        // Re-deliver an errored message.
-        $this->connection->executeUpdate(
-            'UPDATE messenger SET delivery_id = :deliveryId WHERE id = :id',
-            [':id' => $messageId, ':deliveryId' => null],
-            [':id' => ParameterType::BINARY]
-        )->shouldBeCalled();
+        $this->connection->delete(Argument::cetera())->willReturn();
 
-        try {
-            $this->transport->receive(static function () {
-                throw new InterruptException('Ok');
-            });
-        } catch (InterruptException $e) {
-            // All ok!
-        }
+        \iterator_to_array($this->transport->get());
     }
 }

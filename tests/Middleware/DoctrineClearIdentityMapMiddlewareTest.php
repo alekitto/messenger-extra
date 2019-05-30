@@ -32,7 +32,7 @@ class DoctrineClearIdentityMapMiddlewareTest extends TestCase
 
     public function testHandleShouldClearManagersAfterProcessingReceivedMessage(): void
     {
-        $envelope = new Envelope(new \stdClass(), new ReceivedStamp());
+        $envelope = new Envelope(new \stdClass(), [new ReceivedStamp('test')]);
 
         $stack = $this->prophesize(StackInterface::class);
         $stack->next()->willReturn($handler = $this->prophesize(MiddlewareInterface::class));

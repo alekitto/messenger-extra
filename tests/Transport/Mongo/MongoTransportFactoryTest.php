@@ -23,7 +23,7 @@ class MongoTransportFactoryTest extends TestCase
     protected function setUp(): void
     {
         $this->serializer = $this->prophesize(SerializerInterface::class);
-        $this->transportFactory = new MongoTransportFactory($this->serializer->reveal());
+        $this->transportFactory = new MongoTransportFactory();
     }
 
     public function testSupports(): void
@@ -36,7 +36,7 @@ class MongoTransportFactoryTest extends TestCase
 
     public function testCreateShouldCreateDatabaseConnection(): void
     {
-        $transport = $this->transportFactory->createTransport('mongodb://localhost:27017/database/collection', []);
+        $transport = $this->transportFactory->createTransport('mongodb://localhost:27017/database/collection', [], $this->serializer->reveal());
         self::assertInstanceOf(MongoTransport::class, $transport);
     }
 }

@@ -5,7 +5,7 @@
     "require": {
         "php": "^7.1",
         "ext-json": "*",
-        "symfony/messenger": ">=4.2,<4.3"
+        "symfony/messenger": ">=4.3,<4.4"
     },
     "require-dev": {
         "ext-mongodb": "^1.5",

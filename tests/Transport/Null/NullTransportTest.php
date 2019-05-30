@@ -23,9 +23,7 @@ class NullTransportTest extends TestCase
      */
     public function testReceiveShouldNotCallHandler(): void
     {
-        $this->transport->receive(function (): void {
-            throw new \LogicException('Should not be called');
-        });
+        $this->transport->get();
     }
 
     public function testSendShouldReturnTheSameEnvelope(): void

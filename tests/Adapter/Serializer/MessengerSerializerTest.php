@@ -33,7 +33,7 @@ class MessengerSerializerTest extends TestCase
      */
     protected function setUp(): void
     {
-        if (! class_exists(SerializerBuilder::class)) {
+        if (! \class_exists(SerializerBuilder::class)) {
             self::markTestSkipped('Kcs serializer is not installed.');
         }
 

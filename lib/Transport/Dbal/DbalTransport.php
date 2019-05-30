@@ -82,17 +82,25 @@ class DbalTransport implements TransportInterface
     /**
      * {@inheritdoc}
      */
-    public function receive(callable $handler): void
+    public function get(): iterable
     {
-        ($this->receiver ?? $this->getReceiver())->receive($handler);
+        return $this->getReceiver()->get();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stop(): void
+    public function ack(Envelope $envelope): void
     {
-        ($this->receiver ?? $this->getReceiver())->stop();
+        $this->getReceiver()->ack($envelope);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reject(Envelope $envelope): void
+    {
+        $this->getReceiver()->reject($envelope);
     }
 
     /**
@@ -116,7 +124,7 @@ class DbalTransport implements TransportInterface
     private function _createTable(Schema $schema): Table
     {
         $table = $schema->createTable($this->options['table_name']);
-        $table->addColumn('id', Type::BINARY, [ 'length' => 16, 'fixed' => true ]);
+        $table->addColumn('id', Type::BINARY, ['length' => 16, 'fixed' => true]);
         $table->addColumn('published_at', Type::DATETIMETZ_IMMUTABLE);
 
         $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
@@ -129,7 +137,7 @@ class DbalTransport implements TransportInterface
         $table->addColumn('properties', Type::JSON);
         $table->addColumn('priority', Type::INTEGER);
 
-        $table->addColumn('delivery_id', Type::BINARY, [ 'length' => 16, 'fixed' => true ])
+        $table->addColumn('delivery_id', Type::BINARY, ['length' => 16, 'fixed' => true])
             ->setNotnull(false);
         $table->addColumn('redeliver_after', Type::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);

@@ -15,17 +15,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  */
 class MongoTransportFactory implements TransportFactoryInterface
 {
-    /**
-     * @var SerializerInterface|null
-     */
-    private $serializer;
-
-    public function __construct(?SerializerInterface $serializer = null)
-    {
-        $this->serializer = $serializer;
-    }
-
-    public function createTransport(string $dsn, array $options): TransportInterface
+    public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
         $params = \parse_url($dsn);
         $path = $params['path'];
@@ -42,7 +32,7 @@ class MongoTransportFactory implements TransportFactoryInterface
             'collection_name' => $tableName,
         ]);
 
-        return new MongoTransport(new Client(UrlUtils::buildUrl($params)), $this->serializer, $options);
+        return new MongoTransport(new Client(UrlUtils::buildUrl($params)), $serializer, $options);
     }
 
     public function supports(string $dsn, array $options): bool
