@@ -60,6 +60,13 @@ Allows to specify a message delay. Implement this in your message class to delay
 Allows the expiration of a message.
 Implement this interface if you want your message to expire after a given amount of time.
 
+## Compatibility
+
+| Version    | Compatible Symfony Version | Build Status |
+|------------|----------------------------|--------------|
+| dev-master | 4.3.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=master)](https://travis-ci.com/alekitto/messenger-extra) |
+| 1.x        | 4.2.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=1.x)](https://travis-ci.com/alekitto/messenger-extra)    |
+
 ## Symfony bundle
 
 Use `MessengerExtraBundle` to fully integrate this library into your symfony application.
