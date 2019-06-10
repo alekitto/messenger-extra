@@ -76,6 +76,7 @@ class DbalReceiver implements ReceiverInterface
             ->andWhere('delivery_id IS NULL')
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
+            ->addOrderBy('id', 'asc')
             ->setParameter(':delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
             ->setMaxResults(1);
 

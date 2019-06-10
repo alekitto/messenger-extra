@@ -171,7 +171,7 @@ class DbalTransportTest extends TestCase
         $codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
         $messageId = $codec->encodeBinary(Uuid::uuid1());
         $this->connection->executeQuery(
-            'SELECT id FROM messenger WHERE (delayed_until IS NULL OR delayed_until <= :delayedUntil) AND (delivery_id IS NULL) ORDER BY priority asc, published_at asc LIMIT 1',
+            'SELECT id FROM messenger WHERE (delayed_until IS NULL OR delayed_until <= :delayedUntil) AND (delivery_id IS NULL) ORDER BY priority asc, published_at asc, id asc LIMIT 1',
             Argument::any(),
             [':delayedUntil' => Type::DATETIMETZ_IMMUTABLE]
         )
