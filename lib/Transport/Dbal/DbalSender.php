@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
+use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
@@ -69,6 +70,7 @@ class DbalSender implements SenderInterface
             'priority' => 0,
             'time_to_live' => null,
             'delayed_until' => null,
+            'uniq_key' => null,
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
@@ -84,6 +86,29 @@ class DbalSender implements SenderInterface
             $values['priority'] = $message->getPriority();
         }
 
+        if ($message instanceof UniqueMessageInterface) {
+            $uniqKey = $message->getUniquenessKey();
+            if (\mb_strlen($uniqKey) >= 60) {
+                $uniqKey = sha1($uniqKey);
+            }
+
+            $expr = $this->connection->getExpressionBuilder();
+            $result = $this->connection->createQueryBuilder()
+                ->select('id')
+                ->from($this->tableName)
+                ->where($expr->eq('uniq_key', ':uniq_key'))
+                ->andWhere($expr->isNull('delivery_id'))
+                ->setParameter('uniq_key', $uniqKey)
+                ->execute()->fetchColumn()
+            ;
+
+            if (false !== $result) {
+                return $envelope;
+            }
+
+            $values['uniq_key'] = $uniqKey;
+        }
+
         $this->connection->insert($this->tableName, $values, [
             'id' => ParameterType::BINARY,
             'published_at' => Type::DATETIMETZ_IMMUTABLE,
@@ -93,6 +118,7 @@ class DbalSender implements SenderInterface
             'priority' => Type::INTEGER,
             'time_to_live' => Type::DATETIMETZ_IMMUTABLE,
             'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
+            'uniq_key' => ParameterType::STRING,
         ]);
 
         return $envelope;

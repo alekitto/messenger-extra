@@ -5,6 +5,7 @@ namespace Kcs\MessengerExtra\Transport\Mongo;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
+use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
@@ -54,6 +55,7 @@ class MongoSender implements SenderInterface
             'delayed_until' => null,
             'delivery_id' => null,
             'redeliver_at' => null,
+            'uniq_key' => null,
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
@@ -67,6 +69,26 @@ class MongoSender implements SenderInterface
 
         if ($message instanceof PriorityAwareMessageInterface) {
             $values['priority'] = $message->getPriority();
+        }
+
+        if ($message instanceof UniqueMessageInterface) {
+            $values['uniq_key'] = $uniqKey = $message->getUniquenessKey();
+
+            $result = $this->collection->findOne([
+                '$and' => [
+                    ['uniq_key' => $uniqKey],
+                    [
+                        '$or' => [
+                            ['delivery_id' => ['$exists' => false]],
+                            ['delivery_id' => null],
+                        ],
+                    ],
+                ],
+            ]);
+
+            if (null !== $result) {
+                return $envelope;
+            }
         }
 
         $this->collection->insertOne($values);

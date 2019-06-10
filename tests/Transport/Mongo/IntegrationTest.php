@@ -3,6 +3,7 @@
 namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
 use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
+use Kcs\MessengerExtra\Tests\Fixtures\UniqueDummyMessage;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory;
 use MongoDB\Client;
@@ -71,6 +72,20 @@ class IntegrationTest extends TestCase
 
         $worker->run();
         self::assertEquals(2, $receivedMessages);
+    }
+
+    public function testRespectsUniqueMessages(): void
+    {
+        $this->transport->send(new Envelope($first = new UniqueDummyMessage('First')));
+        $this->transport->send(new Envelope($second = new UniqueDummyMessage('Second')));
+
+        $firstGet = \iterator_to_array($this->transport->get(), false);
+        $secondGet = \iterator_to_array($this->transport->get(), false);
+
+        self::assertCount(1, $firstGet);
+        self::assertEquals($first, $firstGet[0]->getMessage());
+
+        self::assertCount(0, $secondGet);
     }
 
     private function dropCollection(): void

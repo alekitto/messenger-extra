@@ -4,6 +4,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Type;
 use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
@@ -51,12 +52,40 @@ class DbalReceiver implements ReceiverInterface
      */
     private $codec;
 
+    /**
+     * @var QueryBuilder
+     */
+    private $select;
+
+    /**
+     * @var QueryBuilder
+     */
+    private $update;
+
     public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
         $this->codec = new StringCodec((new UuidFactory())->getUuidBuilder());
+
+        $this->select = $this->connection->createQueryBuilder()
+            ->select('id')
+            ->from($this->tableName)
+            ->andWhere('delayed_until IS NULL OR delayed_until <= :delayedUntil')
+            ->andWhere('delivery_id IS NULL')
+            ->addOrderBy('priority', 'asc')
+            ->addOrderBy('published_at', 'asc')
+            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setMaxResults(1);
+
+        $this->update = $this->connection->createQueryBuilder()
+            ->update($this->tableName)
+            ->set('delivery_id', ':deliveryId')
+            ->set('redeliver_after', ':redeliverAfter')
+            ->andWhere('id = :messageId')
+            ->andWhere('delivery_id IS NULL')
+        ;
     }
 
     /**
@@ -112,67 +141,47 @@ class DbalReceiver implements ReceiverInterface
     private function fetchMessage(): ?array
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
-        $endAt = \microtime(true) + 0.2; // add 200ms
+        $result = $this->select->execute()->fetch();
+        if (! $result) {
+            return null;
+        }
 
-        $select = $this->connection->createQueryBuilder()
-            ->select('id')
-            ->from($this->tableName)
-            ->andWhere('delayed_until IS NULL OR delayed_until <= :delayedUntil')
-            ->andWhere('delivery_id IS NULL')
-            ->addOrderBy('priority', 'asc')
-            ->addOrderBy('published_at', 'asc')
-            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
-            ->setMaxResults(1);
+        $id = $result['id'];
+        if (\is_resource($id)) {
+            $id = \stream_get_contents($id);
+        }
 
-        $update = $this->connection->createQueryBuilder()
-            ->update($this->tableName)
-            ->set('delivery_id', ':deliveryId')
-            ->set('redeliver_after', ':redeliverAfter')
-            ->andWhere('id = :messageId')
-            ->andWhere('delivery_id IS NULL')
+        $this->update
             ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
             ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':messageId', $id, ParameterType::BINARY)
         ;
 
-        while (\microtime(true) < $endAt) {
-            $result = $select->execute()->fetch();
-            if (! $result) {
+        if ($this->update->execute()) {
+            $deliveredMessage = $this->connection->createQueryBuilder()
+                ->select('*')
+                ->from($this->tableName)
+                ->andWhere('delivery_id = :deliveryId')
+                ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
+                ->setMaxResults(1)
+                ->execute()
+                ->fetch()
+            ;
+
+            // the message has been removed by a 3rd party, such as truncate operation.
+            if (false === $deliveredMessage) {
                 return null;
             }
 
-            $id = $result['id'];
-            if (\is_resource($id)) {
-                $id = \stream_get_contents($id);
-            }
-
-            $update->setParameter(':messageId', $id, ParameterType::BINARY);
-
-            if ($update->execute()) {
-                $deliveredMessage = $this->connection->createQueryBuilder()
-                    ->select('*')
-                    ->from($this->tableName)
-                    ->andWhere('delivery_id = :deliveryId')
-                    ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
-                    ->setMaxResults(1)
-                    ->execute()
-                    ->fetch()
-                ;
-
-                // the message has been removed by a 3rd party, such as truncate operation.
-                if (false === $deliveredMessage) {
-                    continue;
-                }
-
-                if (empty($deliveredMessage['time_to_live']) ||
-                    new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()) {
-                    return [
-                        $id,
-                        $this->serializer->decode([
-                            'body' => $deliveredMessage['body'],
-                            'headers' => \json_decode($deliveredMessage['headers'], true),
-                        ]),
-                    ];
-                }
+            if (empty($deliveredMessage['time_to_live']) ||
+                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()) {
+                return [
+                    $id,
+                    $this->serializer->decode([
+                        'body' => $deliveredMessage['body'],
+                        'headers' => \json_decode($deliveredMessage['headers'], true),
+                    ]),
+                ];
             }
         }
 

@@ -6,6 +6,7 @@ use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
+use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use MongoDB\Client;
 use MongoDB\Collection;
@@ -43,7 +44,7 @@ class MongoTransportTest extends TestCase
 
     public function testSend(): void
     {
-        $message = new class() implements DelayedMessageInterface, TTLAwareMessageInterface, PriorityAwareMessageInterface {
+        $message = new class() implements DelayedMessageInterface, TTLAwareMessageInterface, PriorityAwareMessageInterface, UniqueMessageInterface {
             public function getDelay(): int
             {
                 return 5000;
@@ -58,18 +59,63 @@ class MongoTransportTest extends TestCase
             {
                 return 0;
             }
+
+            public function getUniquenessKey(): string
+            {
+                return 'uniq';
+            }
         };
+
+        $this->collection->findOne([
+            '$and' => [
+                ['uniq_key' => 'uniq'],
+                [
+                    '$or' => [
+                        ['delivery_id' => ['$exists' => false]],
+                        ['delivery_id' => null],
+                    ],
+                ],
+            ],
+        ])->willReturn(null);
 
         $this->collection->insertOne(Argument::allOf(
             Argument::withEntry('published_at', Argument::type('int')),
-            Argument::withEntry('body', '{"delay":5000,"ttl":10,"priority":0}'),
+            Argument::withEntry('body', '{"delay":5000,"ttl":10,"priority":0,"uniquenessKey":"uniq"}'),
             Argument::withEntry('headers', ['type' => \get_class($message)]),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type('int')),
-            Argument::withEntry('delayed_until', Argument::type('int'))
+            Argument::withEntry('delayed_until', Argument::type('int')),
+            Argument::withEntry('uniq_key', 'uniq')
         ))->shouldBeCalled();
 
+        $this->transport->send(new Envelope($message));
+    }
+
+    public function testSendShouldNotSendIfUniqueMessageIsInQueue(): void
+    {
+        $message = new class() implements UniqueMessageInterface {
+            public function getUniquenessKey(): string
+            {
+                return 'uniq';
+            }
+        };
+
+        $this->collection->findOne([
+            '$and' => [
+                ['uniq_key' => 'uniq'],
+                [
+                    '$or' => [
+                        ['delivery_id' => ['$exists' => false]],
+                        ['delivery_id' => null],
+                    ],
+                ],
+            ],
+        ])->willReturn([
+            'id' => '50000foobar',
+        ]);
+
+        $this->collection->insertOne(Argument::cetera())->shouldNotBeCalled();
         $this->transport->send(new Envelope($message));
     }
 

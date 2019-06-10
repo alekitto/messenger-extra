@@ -136,6 +136,7 @@ class DbalTransport implements TransportInterface
         $table->addColumn('headers', Type::JSON);
         $table->addColumn('properties', Type::JSON);
         $table->addColumn('priority', Type::INTEGER);
+        $table->addColumn('uniq_key', Type::STRING, ['length' => 70, 'notnull' => false]);
 
         $table->addColumn('delivery_id', Type::BINARY, ['length' => 16, 'fixed' => true])
             ->setNotnull(false);
@@ -145,6 +146,7 @@ class DbalTransport implements TransportInterface
         $table->setPrimaryKey(['id']);
         $table->addIndex(['delivery_id']);
         $table->addIndex(['priority']);
+        $table->addIndex(['uniq_key']);
 
         return $table;
     }

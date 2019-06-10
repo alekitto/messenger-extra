@@ -11,7 +11,7 @@ This library provides additional transports (and other things) for the symfony m
 
 A transport using doctrine DBAL can be used through the `DbalTransportFactory`.
 
-Supports delayed, prioritized and expiring messages (TTL).
+Supports delayed, prioritized, expiring (TTL) and unique messages.
 
 The dsn supports the following schemes:
 
@@ -40,7 +40,7 @@ event listener that will create the correct table during a schema update
 
 Transport using MongoDB PHP client as trasport.
 
-Supports delayed, prioritized and expiring messages (TTL).
+Supports delayed, prioritized, expiring (TTL) and unique messages.
 
 Use DSN with `mongodb` scheme with `/database/collection` path
 (database `default` and `queue` collection are used if not specified).
@@ -59,6 +59,11 @@ Allows to specify a message delay. Implement this in your message class to delay
 
 Allows the expiration of a message.
 Implement this interface if you want your message to expire after a given amount of time.
+
+### UniqueMessageInterface
+
+Adds a message only once in the queue.
+If another message with the same uniqueness key is present, the message is discarded.
 
 ## Compatibility
 
