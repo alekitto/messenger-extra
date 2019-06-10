@@ -89,7 +89,7 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('id', Argument::type('string')),
             Argument::withEntry('published_at', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('body', '{"delay":5000,"ttl":10,"uniquenessKey":"uniq"}'),
-            Argument::withEntry('headers', ['type' => \get_class($message)]),
+            Argument::withEntry('headers', Argument::withEntry('type', \get_class($message))),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type(\DateTimeImmutable::class)),
