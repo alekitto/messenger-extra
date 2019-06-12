@@ -19,6 +19,7 @@ class MessengerExtraBundle extends Bundle
             ->addCompilerPass(new Compiler\AddSerializerAliasPass())
             ->addCompilerPass(new Compiler\RegisterDoctrineEventsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50)
             ->addCompilerPass(new Compiler\SerializerContextConfigurationPass())
+            ->addCompilerPass(new Compiler\RemoveDefaultDoctrineTransportPass())
         ;
 
         if ($container->getParameter('kernel.debug')) {
