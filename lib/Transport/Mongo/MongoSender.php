@@ -46,6 +46,13 @@ class MongoSender implements SenderInterface
     public function send(Envelope $envelope): Envelope
     {
         $message = $envelope->getMessage();
+        $delay = null;
+
+        /** @var DelayStamp $delayStamp */
+        if (null !== ($delayStamp = $envelope->last(DelayStamp::class))) {
+            $delay = new \DateTimeImmutable('+ '.$delayStamp->getDelay().' milliseconds');
+        }
+
         $encodedMessage = $this->serializer->encode($envelope
             ->withoutStampsOfType(SentStamp::class)
             ->withoutStampsOfType(TransportMessageIdStamp::class)
@@ -61,7 +68,7 @@ class MongoSender implements SenderInterface
             'properties' => [],
             'priority' => 0,
             'time_to_live' => null,
-            'delayed_until' => null,
+            'delayed_until' => $delay,
             'delivery_id' => null,
             'redeliver_at' => null,
             'uniq_key' => null,
