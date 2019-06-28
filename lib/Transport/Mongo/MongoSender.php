@@ -9,6 +9,10 @@ use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Messenger\Stamp\SentStamp;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -42,7 +46,12 @@ class MongoSender implements SenderInterface
     public function send(Envelope $envelope): Envelope
     {
         $message = $envelope->getMessage();
-        $encodedMessage = $this->serializer->encode($envelope);
+        $encodedMessage = $this->serializer->encode($envelope
+            ->withoutStampsOfType(SentStamp::class)
+            ->withoutStampsOfType(TransportMessageIdStamp::class)
+            ->withoutStampsOfType(DelayStamp::class)
+            ->withoutStampsOfType(RedeliveryStamp::class)
+        );
 
         $values = [
             '_id' => new ObjectId(),

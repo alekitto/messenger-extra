@@ -13,6 +13,10 @@ use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Messenger\Stamp\SentStamp;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -59,7 +63,12 @@ class DbalSender implements SenderInterface
     public function send(Envelope $envelope): Envelope
     {
         $message = $envelope->getMessage();
-        $encodedMessage = $this->serializer->encode($envelope);
+        $encodedMessage = $this->serializer->encode($envelope
+            ->withoutStampsOfType(SentStamp::class)
+            ->withoutStampsOfType(TransportMessageIdStamp::class)
+            ->withoutStampsOfType(DelayStamp::class)
+            ->withoutStampsOfType(RedeliveryStamp::class)
+        );
 
         $values = [
             'id' => $this->codec->encodeBinary(Uuid::uuid1()),
