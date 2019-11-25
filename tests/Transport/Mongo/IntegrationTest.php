@@ -16,6 +16,7 @@ use Symfony\Component\Messenger\MessageBus;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Worker;
 use Symfony\Component\Serializer as SerializerComponent;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @group integration
@@ -58,7 +59,13 @@ class IntegrationTest extends TestCase
         $this->transport->send(new Envelope($second = new DummyMessage('Second')));
 
         $receivedMessages = 0;
-        $worker = new Worker([$this->transport], new MessageBus(), [], $eventDispatcher = new EventDispatcher());
+        $workerClass = new \ReflectionClass(Worker::class);
+        $thirdArgument = $workerClass->getConstructor()->getParameters()[2];
+        if ((string) $thirdArgument->getType() === EventDispatcherInterface::class) {
+            $worker = new Worker([$this->transport], new MessageBus(), $eventDispatcher = new EventDispatcher());
+        } else {
+            $worker = new Worker([$this->transport], new MessageBus(), [], $eventDispatcher = new EventDispatcher());
+        }
 
         $eventDispatcher->addListener(WorkerMessageReceivedEvent::class,
             static function (WorkerMessageReceivedEvent $event) use (&$receivedMessages, $first, $second, $worker) {
