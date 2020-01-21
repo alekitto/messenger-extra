@@ -22,7 +22,7 @@ class CheckDependencyPass implements CompilerPassInterface
             $urlParams = \parse_url($url);
 
             if (false === $urlParams) {
-                throw new InvalidConfigurationException(\sprintf('"%s" is not a valid URL', $url));
+                continue;
             }
 
             $scheme = $urlParams['scheme'] ?? null;
