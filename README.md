@@ -74,7 +74,13 @@ If another message with the same uniqueness key is present, the message is disca
 
 ## Symfony bundle
 
+A symfony bundle is included in the code under /lib: 
 Use `MessengerExtraBundle` to fully integrate this library into your symfony application.
+Just add this to `bundles.php`:
+```
+    ...
+    Kcs\MessengerExtra\MessengerExtraBundle::class => ['all' => true],
+```
 Available transports and functionalities will be registered automatically.
 
 ---
