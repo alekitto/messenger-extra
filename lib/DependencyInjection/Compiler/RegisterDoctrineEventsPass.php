@@ -19,7 +19,7 @@ class RegisterDoctrineEventsPass implements CompilerPassInterface
             $urlParams = \parse_url($url);
 
             if (false === $urlParams) {
-                throw new InvalidConfigurationException(\sprintf('"%s" is not a valid URL', $url));
+                continue;
             }
 
             if ('doctrine' === ($urlParams['scheme'] ?? '')) {
