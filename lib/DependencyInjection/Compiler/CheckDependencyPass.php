@@ -21,7 +21,7 @@ class CheckDependencyPass implements CompilerPassInterface
             $url = $container->resolveEnvPlaceholders($service->getArgument(0), true);
             $urlParams = \parse_url($url);
 
-            if (false === $urlParams) {
+            if (false === $urlParams && $url !== "sync://") {
                 throw new InvalidConfigurationException(\sprintf('"%s" is not a valid URL', $url));
             }
 
