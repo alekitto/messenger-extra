@@ -81,7 +81,7 @@ class DbalSender implements SenderInterface
             'id' => $this->codec->encodeBinary(Uuid::uuid1()),
             'published_at' => new \DateTimeImmutable(),
             'body' => $encodedMessage['body'],
-            'headers' => $encodedMessage['headers'],
+            'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],
             'priority' => 0,
             'time_to_live' => null,
