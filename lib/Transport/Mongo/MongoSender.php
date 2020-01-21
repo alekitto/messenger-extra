@@ -64,7 +64,7 @@ class MongoSender implements SenderInterface
             '_id' => new ObjectId(),
             'published_at' => \time(),
             'body' => $encodedMessage['body'],
-            'headers' => $encodedMessage['headers'],
+            'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],
             'priority' => 0,
             'time_to_live' => null,
