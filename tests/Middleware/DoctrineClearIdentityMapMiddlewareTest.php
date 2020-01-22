@@ -24,7 +24,7 @@ class DoctrineClearIdentityMapMiddlewareTest extends TestCase
      */
     private $middleware;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->doctrine = $this->prophesize(ManagerRegistry::class);
         $this->middleware = new DoctrineClearIdentityMapMiddleware($this->doctrine->reveal());

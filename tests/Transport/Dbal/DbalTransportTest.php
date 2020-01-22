@@ -43,7 +43,7 @@ class DbalTransportTest extends TestCase
      */
     private $transport;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->em = $this->prophesize(EntityManagerInterface::class);
         $this->connection = $this->prophesize(Connection::class);

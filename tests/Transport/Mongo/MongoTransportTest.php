@@ -28,7 +28,7 @@ class MongoTransportTest extends TestCase
      */
     private $transport;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $client = $this->prophesize(Client::class);
         $client->selectDatabase('default')

@@ -64,11 +64,10 @@ class DbalTransportFactoryTest extends TestCase
         self::assertInstanceOf(DbalTransport::class, $transport);
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testCreateShouldThrowIfNoRegistryIsPassed(): void
     {
+        $this->expectException(\InvalidArgumentException::class);
+
         $transportFactory = new DbalTransportFactory(null);
         $transportFactory->createTransport('doctrine://connection_name', [], $this->serializer->reveal());
     }

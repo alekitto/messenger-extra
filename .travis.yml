@@ -28,7 +28,6 @@ script: vendor/bin/phpunit
 
 jobs:
     allow_failures:
-        - php: 7.4snapshot
         - env: SYMFONY_VERSION='dev-master'
 
     include:
@@ -44,9 +43,6 @@ jobs:
         - stage: Test
           php: '7.3'
           env: SYMFONY_VERSION='^4.4'
-        - stage: Test
-          php: '7.3'
-          env: SYMFONY_VERSION='dev-master'
         - stage: Test
           php: '7.3'
           env: DB=sqlite SYMFONY_SERIALIZER=1
@@ -85,4 +81,10 @@ jobs:
             - if [ "$SYMFONY_VERSION" != "" ]; then composer require --dev --no-update symfony/messenger=$SYMFONY_VERSION; fi
             - if [ "$SYMFONY_SERIALIZER" != "" ]; then composer remove --dev --no-update kcs/serializer; fi
         - stage: Test
-          php: 7.4snapshot
+          php: 7.4
+        - stage: Test
+          php: '7.3'
+          env: SYMFONY_VERSION='dev-master'
+        - stage: Test
+          php: '7.4'
+          env: SYMFONY_VERSION='dev-master'
