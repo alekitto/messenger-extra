@@ -34,10 +34,13 @@ class MongoSender implements SenderInterface
      */
     private $serializer;
 
-    public function __construct(Collection $collection, SerializerInterface $serializer = null)
+    private $queueName;
+
+    public function __construct(Collection $collection, SerializerInterface $serializer = null, string $queueName = '')
     {
         $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
+        $this->queueName = $queueName;
     }
 
     /**
@@ -72,6 +75,7 @@ class MongoSender implements SenderInterface
             'delivery_id' => null,
             'redeliver_at' => null,
             'uniq_key' => null,
+            'queue_name' => $this->queueName
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {

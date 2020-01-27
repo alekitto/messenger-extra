@@ -35,10 +35,13 @@ class MongoTransport implements TransportInterface
      */
     private $sender;
 
+    private $queueName;
+
     public function __construct(Client $client, SerializerInterface $serializer = null, array $options = [])
     {
         $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
         $this->serializer = $serializer;
+        $this->queueName = $options['queue_name'] ?? '';
     }
 
     /**
@@ -75,11 +78,11 @@ class MongoTransport implements TransportInterface
 
     private function getReceiver(): MongoReceiver
     {
-        return $this->receiver = new MongoReceiver($this->collection, $this->serializer);
+        return $this->receiver = new MongoReceiver($this->collection, $this->serializer, $this->queueName);
     }
 
     private function getSender(): MongoSender
     {
-        return $this->sender = new MongoSender($this->collection, $this->serializer);
+        return $this->sender = new MongoSender($this->collection, $this->serializer, $this->queueName);
     }
 }
