@@ -77,6 +77,9 @@ class IntegrationTest extends TestCase
         @\unlink(__DIR__.'/messenger.db');
     }
 
+    /**
+     * @medium
+     */
     public function testSendsAndReceivesMessages(): void
     {
         $this->transport->send(new Envelope($first = new DummyMessage('First')));
