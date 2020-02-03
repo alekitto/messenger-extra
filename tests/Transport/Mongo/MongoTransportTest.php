@@ -98,7 +98,7 @@ class MongoTransportTest extends TestCase
         $message = new class() {};
 
         $this->collection->insertOne(Argument::allOf(
-            Argument::withEntry('delayed_until', Argument::type('int')),
+            Argument::withEntry('delayed_until', Argument::type('int'))
         ))->shouldBeCalled();
 
         $this->transport->send(new Envelope($message, [new DelayStamp($delay)]));
