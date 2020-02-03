@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 class MongoTransportTest extends TestCase
 {
@@ -90,6 +91,18 @@ class MongoTransportTest extends TestCase
         ))->shouldBeCalled();
 
         $this->transport->send(new Envelope($message));
+    }
+    
+    public function testSendWithSymfonyDelayStamp(): void
+    {
+        $delay = 5000;
+        $message = new class() {};
+
+        $this->collection->insertOne(Argument::allOf(
+            Argument::withEntry('delayed_until', Argument::type('int'))
+        ))->shouldBeCalled();
+
+        $this->transport->send(new Envelope($message, [new DelayStamp($delay)]));
     }
 
     public function testSendShouldNotSendIfUniqueMessageIsInQueue(): void
