@@ -91,6 +91,18 @@ class MongoTransportTest extends TestCase
 
         $this->transport->send(new Envelope($message));
     }
+    
+    public function testSendWithSymfonyDelayStamp(): void
+    {
+        $delay = 5000;
+        $message = new class() {};
+
+        $this->collection->insertOne(Argument::allOf(
+            Argument::withEntry('delayed_until', Argument::type('int')),
+        ))->shouldBeCalled();
+
+        $this->transport->send(new Envelope($message, [new DelayStamp($delay)]));
+    }
 
     public function testSendShouldNotSendIfUniqueMessageIsInQueue(): void
     {
