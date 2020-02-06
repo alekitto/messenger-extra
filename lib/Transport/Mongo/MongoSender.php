@@ -53,7 +53,7 @@ class MongoSender implements SenderInterface
 
         /** @var DelayStamp $delayStamp */
         if (null !== ($delayStamp = $envelope->last(DelayStamp::class))) {
-            $delay = new \DateTimeImmutable('+ '.$delayStamp->getDelay().' milliseconds');
+            $delay = (new \DateTimeImmutable('+ '.$delayStamp->getDelay().' milliseconds'))->getTimestamp();
         }
 
         $encodedMessage = $this->serializer->encode($envelope

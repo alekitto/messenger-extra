@@ -53,6 +53,9 @@ class IntegrationTest extends TestCase
         $this->dropCollection();
     }
 
+    /**
+     * @medium
+     */
     public function testSendsAndReceivesMessages(): void
     {
         $this->transport->send(new Envelope($first = new DummyMessage('First')));
