@@ -5,6 +5,8 @@ namespace Kcs\MessengerExtra\Transport\Mongo;
 use MongoDB\Client;
 use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -13,7 +15,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class MongoTransport implements TransportInterface
+class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     /**
      * @var Collection
@@ -63,6 +65,30 @@ class MongoTransport implements TransportInterface
     public function reject(Envelope $envelope): void
     {
         $this->getReceiver()->reject($envelope);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function all(int $limit = null): iterable
+    {
+        yield from $this->getReceiver()->all($limit);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find($id): ?Envelope
+    {
+        return $this->getReceiver()->find($id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMessageCount(): int
+    {
+        return $this->getReceiver()->getMessageCount();
     }
 
     /**

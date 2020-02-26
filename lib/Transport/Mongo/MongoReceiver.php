@@ -6,6 +6,8 @@ use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -15,7 +17,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class MongoReceiver implements ReceiverInterface
+class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     /**
      * @var SerializerInterface
@@ -79,6 +81,43 @@ class MongoReceiver implements ReceiverInterface
     public function reject(Envelope $envelope): void
     {
         $this->ack($envelope);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function all(int $limit = null): iterable
+    {
+        $options = [];
+        if (null !== $options) {
+            $options['limit'] = $limit;
+        }
+
+        yield from $this->collection->find([], $options);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find($id): ?Envelope
+    {
+        $deliveredMessage = $this->collection->findOne(['_id' => new \MongoId($id)]);
+        if (! $deliveredMessage) {
+            return null;
+        }
+
+        return $this->serializer->decode([
+            'body' => $deliveredMessage['body'],
+            'headers' => \json_decode($deliveredMessage['headers'], true),
+        ]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMessageCount(): int
+    {
+        return $this->collection->countDocuments();
     }
 
     /**

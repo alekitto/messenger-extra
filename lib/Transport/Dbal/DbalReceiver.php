@@ -11,6 +11,8 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -20,7 +22,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class DbalReceiver implements ReceiverInterface
+class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, ListableReceiverInterface
 {
     /**
      * @var SerializerInterface
@@ -132,6 +134,65 @@ class DbalReceiver implements ReceiverInterface
     public function reject(Envelope $envelope): void
     {
         $this->ack($envelope);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function all(int $limit = null): iterable
+    {
+        $statement = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->tableName)
+            ->setMaxResults($limit)
+            ->execute()
+        ;
+
+        while (($row = $statement->fetch())) {
+            yield $this->serializer->decode([
+                'body' => $row['body'],
+                'headers' => \json_decode($row['headers'], true),
+            ]);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find($id): ?Envelope
+    {
+        $deliveredMessage = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->tableName)
+            ->andWhere('id = :identifier')
+            ->setParameter(':identifier', $id, ParameterType::BINARY)
+            ->setMaxResults(1)
+            ->execute()
+            ->fetch()
+        ;
+
+        if (! $deliveredMessage) {
+            return null;
+        }
+
+        return $this->serializer->decode([
+            'body' => $deliveredMessage['body'],
+            'headers' => \json_decode($deliveredMessage['headers'], true),
+        ]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMessageCount(): int
+    {
+        return (int) $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from($this->tableName)
+            ->setMaxResults(1)
+            ->execute()
+            ->fetchColumn()
+        ;
     }
 
     /**
