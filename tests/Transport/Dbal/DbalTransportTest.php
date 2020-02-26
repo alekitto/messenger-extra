@@ -25,6 +25,7 @@ use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 
 class DbalTransportTest extends TestCase
 {
@@ -89,7 +90,10 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('id', Argument::type('string')),
             Argument::withEntry('published_at', Argument::type(\DateTimeImmutable::class)),
             Argument::withEntry('body', '{"delay":5000,"ttl":10,"uniquenessKey":"uniq"}'),
-            Argument::withEntry('headers', Argument::withEntry('type', \get_class($message))),
+            Argument::withEntry('headers', Argument::allOf(
+                Argument::withEntry('type', \get_class($message)),
+                Argument::withKey('X-Message-Stamp-Symfony\Component\Messenger\Stamp\RedeliveryStamp')
+            )),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type(\DateTimeImmutable::class)),
@@ -108,7 +112,9 @@ class DbalTransportTest extends TestCase
         ])
             ->shouldBeCalled();
 
-        $this->transport->send(new Envelope($message));
+        $this->transport->send((new Envelope($message))->with(
+            new RedeliveryStamp(2)
+        ));
     }
 
     public function testSendShouldNotSendIfUniqueMessageIsInQueue(): void
