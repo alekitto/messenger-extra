@@ -100,18 +100,17 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         $this->redeliverMessages();
 
         /** @var Envelope $envelope */
-        [$id, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        $envelope = $this->fetchMessage();
         if (null === $envelope) {
             return;
         }
 
         try {
-            $envelope = $envelope->with(new TransportMessageIdStamp($id));
             yield $envelope;
 
             $this->ack($envelope);
         } catch (\Throwable $e) {
-            $this->redeliver($id);
+            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
 
             throw $e;
         }
@@ -149,10 +148,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         ;
 
         while (($row = $statement->fetch())) {
-            yield $this->serializer->decode([
-                'body' => $row['body'],
-                'headers' => \json_decode($row['headers'], true),
-            ]);
+            yield $this->hydrate($row);
         }
     }
 
@@ -171,14 +167,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->fetch()
         ;
 
-        if (! $deliveredMessage) {
-            return null;
-        }
-
-        return $this->serializer->decode([
-            'body' => $deliveredMessage['body'],
-            'headers' => \json_decode($deliveredMessage['headers'], true),
-        ]);
+        return $deliveredMessage ? $this->hydrate($deliveredMessage) : null;
     }
 
     /**
@@ -195,12 +184,20 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         ;
     }
 
+    private function hydrate(array $row): Envelope
+    {
+        $envelope = $this->serializer->decode([
+            'body' => $row['body'],
+            'headers' => \json_decode($row['headers'], true),
+        ]);
+
+        return $envelope->with(new TransportMessageIdStamp($row['id']));
+    }
+
     /**
      * Fetches a message if it is any.
-     *
-     * @return array|null
      */
-    private function fetchMessage(): ?array
+    private function fetchMessage(): ?Envelope
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
         $result = $this->select->execute()->fetch();
@@ -235,15 +232,11 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
                 return null;
             }
 
-            if (empty($deliveredMessage['time_to_live']) ||
-                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()) {
-                return [
-                    $id,
-                    $this->serializer->decode([
-                        'body' => $deliveredMessage['body'],
-                        'headers' => \json_decode($deliveredMessage['headers'], true),
-                    ]),
-                ];
+            if (
+                empty($deliveredMessage['time_to_live']) ||
+                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()
+            ) {
+                return $this->hydrate($deliveredMessage);
             }
         }
 

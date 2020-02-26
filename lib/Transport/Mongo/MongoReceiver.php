@@ -47,18 +47,17 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     {
         $this->removeExpiredMessages();
 
-        [$message, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        $envelope = $this->fetchMessage();
         if (null === $envelope) {
             return;
         }
 
         try {
-            $envelope = $envelope->with(new TransportMessageIdStamp($message['_id']));
             yield $envelope;
 
             $this->ack($envelope);
         } catch (\Throwable $e) {
-            $this->redeliver($message);
+            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
 
             throw $e;
         }
@@ -106,10 +105,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             return null;
         }
 
-        return $this->serializer->decode([
-            'body' => $deliveredMessage['body'],
-            'headers' => \json_decode($deliveredMessage['headers'], true),
-        ]);
+        return $this->hydrate($deliveredMessage);
     }
 
     /**
@@ -120,12 +116,17 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         return $this->collection->countDocuments();
     }
 
+    private function hydrate(array $row): Envelope
+    {
+        $envelope = $this->serializer->decode($row);
+
+        return $envelope->with(new TransportMessageIdStamp($row['_id']));
+    }
+
     /**
      * Fetches a message if it is any.
-     *
-     * @return array|null
      */
-    private function fetchMessage(): ?array
+    private function fetchMessage(): ?Envelope
     {
         $deliveryId = Uuid::uuid4()->toString();
         $now = \time();
@@ -165,13 +166,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         }
 
         if (empty($message['time_to_live']) || $message['time_to_live'] > \time()) {
-            return [
-                $message,
-                $this->serializer->decode([
-                    'body' => $message['body'],
-                    'headers' => $message['headers'],
-                ]),
-            ];
+            return $this->hydrate($message);
         }
 
         return null;
@@ -197,13 +192,11 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
 
     /**
      * Redeliver a single message.
-     *
-     * @param array $message
      */
-    private function redeliver(array $message): void
+    private function redeliver(string $id): void
     {
         $this->collection->updateOne([
-            '_id' => $message['_id'],
+            '_id' => $id,
         ], [
             '$set' => [
                 'delivery_id' => null,
