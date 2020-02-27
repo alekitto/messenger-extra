@@ -43,7 +43,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     {
         $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
         $this->serializer = $serializer;
-        $this->queueName = $options['queue_name'] ?? '';
+        $this->queueName = array_key_exists('queue_name', $options) ? $options['queue_name'] : '';
     }
 
     /**
