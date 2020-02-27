@@ -11,6 +11,8 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -20,7 +22,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class DbalReceiver implements ReceiverInterface
+class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, ListableReceiverInterface
 {
     /**
      * @var SerializerInterface
@@ -98,18 +100,17 @@ class DbalReceiver implements ReceiverInterface
         $this->redeliverMessages();
 
         /** @var Envelope $envelope */
-        [$id, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        $envelope = $this->fetchMessage();
         if (null === $envelope) {
             return;
         }
 
         try {
-            $envelope = $envelope->with(new TransportMessageIdStamp($id));
             yield $envelope;
 
             $this->ack($envelope);
         } catch (\Throwable $e) {
-            $this->redeliver($id);
+            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
 
             throw $e;
         }
@@ -135,11 +136,68 @@ class DbalReceiver implements ReceiverInterface
     }
 
     /**
-     * Fetches a message if it is any.
-     *
-     * @return array|null
+     * {@inheritdoc}
      */
-    private function fetchMessage(): ?array
+    public function all(int $limit = null): iterable
+    {
+        $statement = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->tableName)
+            ->setMaxResults($limit)
+            ->execute()
+        ;
+
+        while (($row = $statement->fetch())) {
+            yield $this->hydrate($row);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find($id): ?Envelope
+    {
+        $deliveredMessage = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->tableName)
+            ->andWhere('id = :identifier')
+            ->setParameter(':identifier', $id, ParameterType::BINARY)
+            ->setMaxResults(1)
+            ->execute()
+            ->fetch()
+        ;
+
+        return $deliveredMessage ? $this->hydrate($deliveredMessage) : null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMessageCount(): int
+    {
+        return (int) $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from($this->tableName)
+            ->setMaxResults(1)
+            ->execute()
+            ->fetchColumn()
+        ;
+    }
+
+    private function hydrate(array $row): Envelope
+    {
+        $envelope = $this->serializer->decode([
+            'body' => $row['body'],
+            'headers' => \json_decode($row['headers'], true),
+        ]);
+
+        return $envelope->with(new TransportMessageIdStamp($row['id']));
+    }
+
+    /**
+     * Fetches a message if it is any.
+     */
+    private function fetchMessage(): ?Envelope
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
         $result = $this->select->execute()->fetch();
@@ -174,15 +232,11 @@ class DbalReceiver implements ReceiverInterface
                 return null;
             }
 
-            if (empty($deliveredMessage['time_to_live']) ||
-                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()) {
-                return [
-                    $id,
-                    $this->serializer->decode([
-                        'body' => $deliveredMessage['body'],
-                        'headers' => \json_decode($deliveredMessage['headers'], true),
-                    ]),
-                ];
+            if (
+                empty($deliveredMessage['time_to_live']) ||
+                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()
+            ) {
+                return $this->hydrate($deliveredMessage);
             }
         }
 

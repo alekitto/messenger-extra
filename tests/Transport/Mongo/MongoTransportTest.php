@@ -16,6 +16,7 @@ use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 
 class MongoTransportTest extends TestCase
 {
@@ -82,7 +83,10 @@ class MongoTransportTest extends TestCase
         $this->collection->insertOne(Argument::allOf(
             Argument::withEntry('published_at', Argument::type('string')),
             Argument::withEntry('body', '{"delay":5000,"ttl":10,"priority":0,"uniquenessKey":"uniq"}'),
-            Argument::withEntry('headers', Argument::withEntry('type', \get_class($message))),
+            Argument::withEntry('headers', Argument::allOf(
+                Argument::withEntry('type', \get_class($message)),
+                Argument::withKey('X-Message-Stamp-Symfony\Component\Messenger\Stamp\RedeliveryStamp')
+            )),
             Argument::withEntry('properties', []),
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type('int')),
@@ -90,7 +94,9 @@ class MongoTransportTest extends TestCase
             Argument::withEntry('uniq_key', 'uniq')
         ))->shouldBeCalled();
 
-        $this->transport->send(new Envelope($message));
+        $this->transport->send((new Envelope($message))->with(
+            new RedeliveryStamp(2)
+        ));
     }
     
     public function testSendWithSymfonyDelayStamp(): void
