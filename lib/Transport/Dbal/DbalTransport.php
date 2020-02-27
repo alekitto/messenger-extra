@@ -8,6 +8,8 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -16,7 +18,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class DbalTransport implements TransportInterface
+class DbalTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     /**
      * @var Connection
@@ -101,6 +103,21 @@ class DbalTransport implements TransportInterface
     public function reject(Envelope $envelope): void
     {
         $this->getReceiver()->reject($envelope);
+    }
+
+    public function all(int $limit = null): iterable
+    {
+        yield from $this->getReceiver()->all($limit);
+    }
+
+    public function find($id): ?Envelope
+    {
+        return $this->getReceiver()->find($id);
+    }
+
+    public function getMessageCount(): int
+    {
+        return $this->getReceiver()->getMessageCount();
     }
 
     /**
