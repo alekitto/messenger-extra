@@ -6,6 +6,8 @@ use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
+use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
+use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -15,7 +17,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class MongoReceiver implements ReceiverInterface
+class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     /**
      * @var SerializerInterface
@@ -48,18 +50,17 @@ class MongoReceiver implements ReceiverInterface
     {
         $this->removeExpiredMessages();
 
-        [$message, $envelope] = $this->fetchMessage() ?? [null, null, null];
+        $envelope = $this->fetchMessage();
         if (null === $envelope) {
             return;
         }
 
         try {
-            $envelope = $envelope->with(new TransportMessageIdStamp($message['_id']));
             yield $envelope;
 
             $this->ack($envelope);
         } catch (\Throwable $e) {
-            $this->redeliver($message);
+            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
 
             throw $e;
         }
@@ -85,11 +86,50 @@ class MongoReceiver implements ReceiverInterface
     }
 
     /**
-     * Fetches a message if it is any.
-     *
-     * @return array|null
+     * {@inheritdoc}
      */
-    private function fetchMessage(): ?array
+    public function all(int $limit = null): iterable
+    {
+        $options = [];
+        if (null !== $options) {
+            $options['limit'] = $limit;
+        }
+
+        yield from $this->collection->find([], $options);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find($id): ?Envelope
+    {
+        $deliveredMessage = $this->collection->findOne(['_id' => new \MongoId($id)]);
+        if (! $deliveredMessage) {
+            return null;
+        }
+
+        return $this->hydrate($deliveredMessage);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMessageCount(): int
+    {
+        return $this->collection->countDocuments();
+    }
+
+    private function hydrate(array $row): Envelope
+    {
+        $envelope = $this->serializer->decode($row);
+
+        return $envelope->with(new TransportMessageIdStamp($row['_id']));
+    }
+
+    /**
+     * Fetches a message if it is any.
+     */
+    private function fetchMessage(): ?Envelope
     {
         $deliveryId = Uuid::uuid4()->toString();
         $now = \time();
@@ -132,13 +172,7 @@ class MongoReceiver implements ReceiverInterface
         }
 
         if (empty($message['time_to_live']) || $message['time_to_live'] > \time()) {
-            return [
-                $message,
-                $this->serializer->decode([
-                    'body' => $message['body'],
-                    'headers' => $message['headers'],
-                ]),
-            ];
+            return $this->hydrate($message);
         }
 
         return null;
@@ -164,13 +198,11 @@ class MongoReceiver implements ReceiverInterface
 
     /**
      * Redeliver a single message.
-     *
-     * @param array $message
      */
-    private function redeliver(array $message): void
+    private function redeliver(string $id): void
     {
         $this->collection->updateOne([
-            '_id' => $message['_id'],
+            '_id' => $id,
         ], [
             '$set' => [
                 'delivery_id' => null,

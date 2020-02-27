@@ -60,7 +60,6 @@ class MongoSender implements SenderInterface
             ->withoutStampsOfType(SentStamp::class)
             ->withoutStampsOfType(TransportMessageIdStamp::class)
             ->withoutStampsOfType(DelayStamp::class)
-            ->withoutStampsOfType(RedeliveryStamp::class)
         );
 
         $values = [

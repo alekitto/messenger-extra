@@ -61,6 +61,9 @@ class IntegrationTest extends TestCase
         $this->transport->send(new Envelope($first = new DummyMessage('First')));
         $this->transport->send(new Envelope($second = new DummyMessage('Second')));
 
+        self::assertCount(2, $this->transport->all());
+        self::assertEquals(2, $this->transport->getMessageCount());
+
         $receivedMessages = 0;
         $workerClass = new \ReflectionClass(Worker::class);
         $thirdArgument = $workerClass->getConstructor()->getParameters()[2];
