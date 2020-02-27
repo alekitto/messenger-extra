@@ -61,7 +61,7 @@ class MongoSender implements SenderInterface
 
         $values = [
             '_id' => new ObjectId(),
-            'published_at' => (string)(\microtime(true)*10000),
+            'published_at' => (int)(\microtime(true)*10000),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],

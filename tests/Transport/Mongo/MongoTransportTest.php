@@ -81,7 +81,7 @@ class MongoTransportTest extends TestCase
         ])->willReturn(null);
 
         $this->collection->insertOne(Argument::allOf(
-            Argument::withEntry('published_at', Argument::type('string')),
+            Argument::withEntry('published_at', Argument::type('int')),
             Argument::withEntry('body', '{"delay":5000,"ttl":10,"priority":0,"uniquenessKey":"uniq"}'),
             Argument::withEntry('headers', Argument::allOf(
                 Argument::withEntry('type', \get_class($message)),
