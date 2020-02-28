@@ -8,6 +8,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Messenger\Transport\SetupableTransportInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
@@ -15,7 +16,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
+class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface, SetupableTransportInterface
 {
     /**
      * @var Collection
@@ -39,9 +40,12 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
 
     private $queueName;
 
+    private $database;
+
     public function __construct(Client $client, SerializerInterface $serializer = null, array $options = [])
     {
-        $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
+        $this->database = $client->{$options['database_name']};
+        $this->collection = $this->database->{$options['collection_name']};
         $this->serializer = $serializer;
         $this->queueName = array_key_exists('queue_name', $options) ? $options['queue_name'] : '';
     }
@@ -110,5 +114,15 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     private function getSender(): MongoSender
     {
         return $this->sender = new MongoSender($this->collection, $this->serializer, $this->queueName);
+    }
+
+    public function setup(): void
+    {
+        $messengerCollectionName = $this->collection->getCollectionName();
+        $this->database->selectCollection($messengerCollectionName);
+        $this->collection->createIndex(
+            ['queue_name' => 1],
+            ['sparse' => true]
+        );
     }
 }
