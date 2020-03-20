@@ -69,18 +69,19 @@ If another message with the same uniqueness key is present, the message is disca
 
 | Version    | Compatible Symfony Version | Build Status |
 |------------|----------------------------|--------------|
-| dev-master | 4.3.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=master)](https://travis-ci.com/alekitto/messenger-extra) |
-| 1.x        | 4.2.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=1.x)](https://travis-ci.com/alekitto/messenger-extra)    |
+| 2.x        | ^4.3, ^5.0                 | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=2.x)](https://travis-ci.com/alekitto/messenger-extra) |
+| 1.x        | 4.2.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=1.x)](https://travis-ci.com/alekitto/messenger-extra) |
 
 ## Symfony bundle
 
 A symfony bundle is included in the code under /lib: 
 Use `MessengerExtraBundle` to fully integrate this library into your symfony application.
 Just add this to `bundles.php`:
+
 ```
-    ...
     Kcs\MessengerExtra\MessengerExtraBundle::class => ['all' => true],
 ```
+
 Available transports and functionalities will be registered automatically.
 
 ---
