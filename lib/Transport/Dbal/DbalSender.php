@@ -75,8 +75,9 @@ class DbalSender implements SenderInterface
             ->withoutStampsOfType(DelayStamp::class)
         );
 
+        $messageId = $this->codec->encodeBinary(Uuid::uuid1());
         $values = [
-            'id' => $this->codec->encodeBinary(Uuid::uuid1()),
+            'id' => $messageId,
             'published_at' => new \DateTimeImmutable(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
@@ -135,6 +136,8 @@ class DbalSender implements SenderInterface
             'uniq_key' => ParameterType::STRING,
         ]);
 
-        return $envelope;
+        return $envelope
+            ->with(new TransportMessageIdStamp($messageId))
+        ;
     }
 }

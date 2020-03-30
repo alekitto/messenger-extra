@@ -11,7 +11,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
@@ -26,6 +26,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 
 class DbalTransportTest extends TestCase
 {
@@ -101,20 +102,22 @@ class DbalTransportTest extends TestCase
             Argument::withEntry('uniq_key', 'uniq')
         ), [
             'id' => ParameterType::BINARY,
-            'published_at' => Type::DATETIMETZ_IMMUTABLE,
-            'body' => Type::TEXT,
-            'headers' => Type::JSON,
-            'properties' => Type::JSON,
-            'priority' => Type::INTEGER,
-            'time_to_live' => Type::DATETIMETZ_IMMUTABLE,
-            'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
+            'published_at' => Types::DATETIMETZ_IMMUTABLE,
+            'body' => Types::TEXT,
+            'headers' => Types::JSON,
+            'properties' => Types::JSON,
+            'priority' => Types::INTEGER,
+            'time_to_live' => Types::DATETIMETZ_IMMUTABLE,
+            'delayed_until' => Types::DATETIMETZ_IMMUTABLE,
             'uniq_key' => ParameterType::STRING,
         ])
             ->shouldBeCalled();
 
-        $this->transport->send((new Envelope($message))->with(
+        $envelope = $this->transport->send((new Envelope($message))->with(
             new RedeliveryStamp(2)
         ));
+
+        self::assertNotEmpty($envelope->last(TransportMessageIdStamp::class)->getId());
     }
 
     public function testSendShouldNotSendIfUniqueMessageIsInQueue(): void
@@ -162,14 +165,14 @@ class DbalTransportTest extends TestCase
         $this->connection->executeUpdate(
             'DELETE FROM messenger WHERE ((time_to_live IS NOT NULL) AND (time_to_live < :now)) AND (delivery_id IS NULL)',
             Argument::any(),
-            [':now' => Type::DATETIMETZ_IMMUTABLE]
+            [':now' => Types::DATETIMETZ_IMMUTABLE]
         )->shouldBeCalled();
 
         // Re-deliver old messages
         $this->connection->executeUpdate(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE (redeliver_after < :now) AND (delivery_id IS NOT NULL)',
             Argument::any(),
-            [':now' => Type::DATETIMETZ_IMMUTABLE]
+            [':now' => Types::DATETIMETZ_IMMUTABLE]
         )->shouldBeCalled();
 
         $this->connection->getDatabasePlatform()->willReturn($platform = $this->prophesize(AbstractPlatform::class));
@@ -179,7 +182,7 @@ class DbalTransportTest extends TestCase
         $this->connection->executeQuery(
             'SELECT id FROM messenger WHERE (delayed_until IS NULL OR delayed_until <= :delayedUntil) AND (delivery_id IS NULL) ORDER BY priority asc, published_at asc, id asc LIMIT 1',
             Argument::any(),
-            [':delayedUntil' => Type::DATETIMETZ_IMMUTABLE]
+            [':delayedUntil' => Types::DATETIMETZ_IMMUTABLE]
         )
             ->shouldBeCalled()
             ->willReturn(new ArrayStatement([
@@ -199,7 +202,7 @@ class DbalTransportTest extends TestCase
             }),
             [
                 ':deliveryId' => ParameterType::BINARY,
-                ':redeliverAfter' => Type::DATETIMETZ_IMMUTABLE,
+                ':redeliverAfter' => Types::DATETIMETZ_IMMUTABLE,
                 ':messageId' => ParameterType::BINARY,
             ]
         )

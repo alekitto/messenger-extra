@@ -106,8 +106,10 @@ class MongoSender implements SenderInterface
             }
         }
 
-        $this->collection->insertOne($values);
+        $result = $this->collection->insertOne($values);
 
-        return $envelope;
+        return $envelope
+            ->with(new TransportMessageIdStamp((string) $result->getInsertedId()))
+        ;
     }
 }
