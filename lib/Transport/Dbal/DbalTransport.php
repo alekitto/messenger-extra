@@ -5,7 +5,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
@@ -141,23 +141,23 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     private function _createTable(Schema $schema): Table
     {
         $table = $schema->createTable($this->options['table_name']);
-        $table->addColumn('id', Type::BINARY, ['length' => 16, 'fixed' => true]);
-        $table->addColumn('published_at', Type::DATETIMETZ_IMMUTABLE);
+        $table->addColumn('id', Types::BINARY, ['length' => 16, 'fixed' => true]);
+        $table->addColumn('published_at', Types::DATETIMETZ_IMMUTABLE);
 
-        $table->addColumn('delayed_until', Type::DATETIMETZ_IMMUTABLE)
+        $table->addColumn('delayed_until', Types::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);
-        $table->addColumn('time_to_live', Type::DATETIMETZ_IMMUTABLE)
+        $table->addColumn('time_to_live', Types::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);
 
-        $table->addColumn('body', Type::TEXT);
-        $table->addColumn('headers', Type::JSON);
-        $table->addColumn('properties', Type::JSON);
-        $table->addColumn('priority', Type::INTEGER);
-        $table->addColumn('uniq_key', Type::STRING, ['length' => 70, 'notnull' => false]);
+        $table->addColumn('body', Types::TEXT);
+        $table->addColumn('headers', Types::JSON);
+        $table->addColumn('properties', Types::JSON);
+        $table->addColumn('priority', Types::INTEGER);
+        $table->addColumn('uniq_key', Types::STRING, ['length' => 70, 'notnull' => false]);
 
-        $table->addColumn('delivery_id', Type::BINARY, ['length' => 16, 'fixed' => true])
+        $table->addColumn('delivery_id', Types::BINARY, ['length' => 16, 'fixed' => true])
             ->setNotnull(false);
-        $table->addColumn('redeliver_after', Type::DATETIMETZ_IMMUTABLE)
+        $table->addColumn('redeliver_after', Types::DATETIMETZ_IMMUTABLE)
             ->setNotnull(false);
 
         $table->setPrimaryKey(['id']);

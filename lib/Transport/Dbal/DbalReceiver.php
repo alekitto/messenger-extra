@@ -5,7 +5,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
@@ -79,7 +79,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
             ->addOrderBy('id', 'asc')
-            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->setMaxResults(1);
 
         $this->update = $this->connection->createQueryBuilder()
@@ -212,7 +212,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
 
         $this->update
             ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
-            ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Types::DATETIMETZ_IMMUTABLE)
             ->setParameter(':messageId', $id, ParameterType::BINARY)
         ;
 
@@ -259,7 +259,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->set('delivery_id', ':deliveryId')
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
-            ->setParameter(':now', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':now', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->setParameter(':deliveryId', null)
             ->execute()
         ;
@@ -282,7 +282,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->delete($this->tableName)
             ->andWhere('(time_to_live IS NOT NULL) AND (time_to_live < :now)')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter(':now', new \DateTimeImmutable(), Type::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':now', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->execute()
         ;
 
