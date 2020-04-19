@@ -2,6 +2,7 @@
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
+use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Envelope;
@@ -92,7 +93,9 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             $options['limit'] = $limit;
         }
 
-        yield from $this->collection->find([], $options);
+        foreach ($this->collection->find([], $options) as $deliveredMessage){
+            yield $this->hydrate((array) $deliveredMessage);
+        }
     }
 
     /**
@@ -100,12 +103,14 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     public function find($id): ?Envelope
     {
-        $deliveredMessage = $this->collection->findOne(['_id' => new \MongoId($id)]);
+        $id = $id instanceof ObjectId ? $id : new ObjectId($id);
+
+        $deliveredMessage = $this->collection->findOne(['_id' => $id]);
         if (! $deliveredMessage) {
             return null;
         }
 
-        return $this->hydrate($deliveredMessage);
+        return $this->hydrate((array) $deliveredMessage);
     }
 
     /**
