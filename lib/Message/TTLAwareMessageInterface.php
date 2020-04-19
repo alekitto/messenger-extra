@@ -11,8 +11,6 @@ interface TTLAwareMessageInterface
 {
     /**
      * Gets the time-to-live (in seconds) for this message.
-     *
-     * @return int
      */
     public function getTtl(): int;
 }

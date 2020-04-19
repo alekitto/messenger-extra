@@ -10,8 +10,6 @@ interface PriorityAwareMessageInterface
      *
      * All the messages that are not implementing this interface are
      * published with priority = 0
-     *
-     * @return int
      */
     public function getPriority(): int;
 }

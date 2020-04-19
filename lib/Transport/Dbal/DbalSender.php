@@ -104,7 +104,7 @@ class DbalSender implements SenderInterface
         if ($message instanceof UniqueMessageInterface) {
             $uniqKey = $message->getUniquenessKey();
             if (\mb_strlen($uniqKey) >= 60) {
-                $uniqKey = sha1($uniqKey);
+                $uniqKey = \sha1($uniqKey);
             }
 
             $expr = $this->connection->getExpressionBuilder();

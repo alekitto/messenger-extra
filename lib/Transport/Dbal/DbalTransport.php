@@ -54,8 +54,6 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
 
     /**
      * Register the table into the doctrine schema.
-     *
-     * @param GenerateSchemaEventArgs $eventArgs
      */
     public function postGenerateSchema(GenerateSchemaEventArgs $eventArgs): void
     {
