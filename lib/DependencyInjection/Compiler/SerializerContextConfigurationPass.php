@@ -18,7 +18,10 @@ class SerializerContextConfigurationPass implements CompilerPassInterface
         if ($container->hasExtension('framework')) {
             /** @var FrameworkExtension $framework */
             $framework = $container->getExtension('framework');
+            $resolvingBag = $container->getParameterBag();
+
             $frameworkConfigs = $container->getExtensionConfig('framework');
+            $frameworkConfigs = $resolvingBag->resolveValue($frameworkConfigs);
 
             $processor = new Processor();
             $config = $processor->processConfiguration($framework->getConfiguration([], $container), $frameworkConfigs);
