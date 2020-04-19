@@ -93,7 +93,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             $options['limit'] = $limit;
         }
 
-        foreach ($this->collection->find([], $options) as $deliveredMessage){
+        foreach ($this->collection->find([], $options) as $deliveredMessage) {
             yield $this->hydrate((array) $deliveredMessage);
         }
     }

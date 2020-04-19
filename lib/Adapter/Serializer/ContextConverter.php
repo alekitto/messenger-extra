@@ -14,10 +14,6 @@ final class ContextConverter
 {
     /**
      * Converts to SerializationContext.
-     *
-     * @param array $context
-     *
-     * @return SerializationContext
      */
     public static function toSerializationContext(array $context): SerializationContext
     {
@@ -32,10 +28,6 @@ final class ContextConverter
 
     /**
      * Converts to DeserializationContext.
-     *
-     * @param array $context
-     *
-     * @return DeserializationContext
      */
     public static function toDeserializationContext(array $context): DeserializationContext
     {

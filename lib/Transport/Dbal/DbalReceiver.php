@@ -291,8 +291,6 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
 
     /**
      * Redeliver a single message.
-     *
-     * @param string $id
      */
     private function redeliver(string $id): void
     {

@@ -136,7 +136,7 @@ class DbalTransportTest extends TestCase
         $this->connection
             ->executeQuery('SELECT id FROM messenger WHERE (uniq_key = :uniq_key) AND (delivery_id IS NULL)', ['uniq_key' => 'uniq'], [])
             ->willReturn(new ArrayStatement([
-                [ 'id' => Uuid::uuid4()->getBytes() ],
+                ['id' => Uuid::uuid4()->getBytes()],
             ]));
 
         $this->connection->insert(Argument::cetera())->shouldNotBeCalled();

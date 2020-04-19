@@ -2,7 +2,6 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
@@ -108,11 +107,12 @@ class MongoTransportTest extends TestCase
 
         self::assertNotEmpty($envelope->last(TransportMessageIdStamp::class)->getId());
     }
-    
+
     public function testSendWithSymfonyDelayStamp(): void
     {
         $delay = 5000;
-        $message = new class() {};
+        $message = new class() {
+        };
 
         $this->collection->insertOne(Argument::allOf(
             Argument::withEntry('delayed_until', Argument::type('int'))
