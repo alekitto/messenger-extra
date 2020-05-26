@@ -2,21 +2,23 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 
-use Doctrine\DBAL\Types\Type;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
 use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
+use MongoDB\BSON\ObjectId;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
+use MongoDB\InsertOneResult;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 
 class MongoTransportTest extends TestCase
 {
@@ -92,21 +94,34 @@ class MongoTransportTest extends TestCase
             Argument::withEntry('time_to_live', Argument::type('int')),
             Argument::withEntry('delayed_until', Argument::type('int')),
             Argument::withEntry('uniq_key', 'uniq')
-        ))->shouldBeCalled();
+        ))
+            ->shouldBeCalled()
+            ->willReturn($result = $this->prophesize(InsertOneResult::class))
+        ;
 
-        $this->transport->send((new Envelope($message))->with(
+        $result->getInsertedId()->willReturn(new ObjectId());
+
+        $envelope = $this->transport->send((new Envelope($message))->with(
             new RedeliveryStamp(2)
         ));
+
+        self::assertNotEmpty($envelope->last(TransportMessageIdStamp::class)->getId());
     }
-    
+
     public function testSendWithSymfonyDelayStamp(): void
     {
         $delay = 5000;
-        $message = new class() {};
+        $message = new class() {
+        };
 
         $this->collection->insertOne(Argument::allOf(
             Argument::withEntry('delayed_until', Argument::type('int'))
-        ))->shouldBeCalled();
+        ))
+            ->shouldBeCalled()
+            ->willReturn($result = $this->prophesize(InsertOneResult::class))
+        ;
+
+        $result->getInsertedId()->willReturn(new ObjectId());
 
         $this->transport->send(new Envelope($message, [new DelayStamp($delay)]));
     }

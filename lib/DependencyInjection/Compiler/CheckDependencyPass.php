@@ -5,7 +5,6 @@ namespace Kcs\MessengerExtra\DependencyInjection\Compiler;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\UuidInterface;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 

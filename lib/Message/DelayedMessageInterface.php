@@ -12,8 +12,6 @@ interface DelayedMessageInterface
     /**
      * Gets the delay (in milliseconds) that must elapse for this message to be
      * delivered after it was sent.
-     *
-     * @return int
      */
     public function getDelay(): int;
 }

@@ -10,7 +10,6 @@ use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 use Symfony\Component\Messenger\Stamp\SentStamp;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
@@ -61,7 +60,7 @@ class MongoSender implements SenderInterface
 
         $values = [
             '_id' => new ObjectId(),
-            'published_at' => \time(),
+            'published_at' => (int) (\microtime(true) * 10000),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],
@@ -106,8 +105,10 @@ class MongoSender implements SenderInterface
             }
         }
 
-        $this->collection->insertOne($values);
+        $result = $this->collection->insertOne($values);
 
-        return $envelope;
+        return $envelope
+            ->with(new TransportMessageIdStamp((string) $result->getInsertedId()))
+        ;
     }
 }
