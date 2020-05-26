@@ -11,6 +11,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Messenger\Transport\SetupableTransportInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
@@ -18,7 +19,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  *
  * @author Alessandro Chitolina <alekitto@gmail.com>
  */
-class DbalTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
+class DbalTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface, SetupableTransportInterface
 {
     /**
      * @var Connection
@@ -63,6 +64,14 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
         }
 
         $this->_createTable($schema);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setup(): void
+    {
+        $this->createTable();
     }
 
     /**
