@@ -48,7 +48,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function get(): iterable
     {
-        return $this->getReceiver()->get();
+        return ($this->receiver ?? $this->getReceiver())->get();
     }
 
     /**
@@ -56,7 +56,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function ack(Envelope $envelope): void
     {
-        $this->getReceiver()->ack($envelope);
+        ($this->receiver ?? $this->getReceiver())->ack($envelope);
     }
 
     /**
@@ -64,7 +64,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function reject(Envelope $envelope): void
     {
-        $this->getReceiver()->reject($envelope);
+        ($this->receiver ?? $this->getReceiver())->reject($envelope);
     }
 
     /**
@@ -72,7 +72,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function all(int $limit = null): iterable
     {
-        yield from $this->getReceiver()->all($limit);
+        yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
 
     /**
@@ -80,7 +80,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function find($id): ?Envelope
     {
-        return $this->getReceiver()->find($id);
+        return ($this->receiver ?? $this->getReceiver())->find($id);
     }
 
     /**
@@ -88,7 +88,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function getMessageCount(): int
     {
-        return $this->getReceiver()->getMessageCount();
+        return ($this->receiver ?? $this->getReceiver())->getMessageCount();
     }
 
     /**
