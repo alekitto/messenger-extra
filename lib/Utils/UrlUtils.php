@@ -6,10 +6,6 @@ class UrlUtils
 {
     /**
      * Build URL from parse_url array params.
-     *
-     * @param array $url
-     *
-     * @return string
      */
     public static function buildUrl(array $url): string
     {

@@ -34,11 +34,6 @@ class DbalTransportFactory implements TransportFactoryInterface
      */
     private $managerRegistry;
 
-    /**
-     * @var SerializerInterface|null
-     */
-    private $serializer;
-
     public function __construct(?ManagerRegistry $managerRegistry = null)
     {
         $this->managerRegistry = $managerRegistry;

@@ -4,7 +4,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
@@ -14,7 +14,6 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 use Symfony\Component\Messenger\Stamp\SentStamp;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
@@ -76,8 +75,9 @@ class DbalSender implements SenderInterface
             ->withoutStampsOfType(DelayStamp::class)
         );
 
+        $messageId = $this->codec->encodeBinary(Uuid::uuid1());
         $values = [
-            'id' => $this->codec->encodeBinary(Uuid::uuid1()),
+            'id' => $messageId,
             'published_at' => new \DateTimeImmutable(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
@@ -104,7 +104,7 @@ class DbalSender implements SenderInterface
         if ($message instanceof UniqueMessageInterface) {
             $uniqKey = $message->getUniquenessKey();
             if (\mb_strlen($uniqKey) >= 60) {
-                $uniqKey = sha1($uniqKey);
+                $uniqKey = \sha1($uniqKey);
             }
 
             $expr = $this->connection->getExpressionBuilder();
@@ -126,16 +126,18 @@ class DbalSender implements SenderInterface
 
         $this->connection->insert($this->tableName, $values, [
             'id' => ParameterType::BINARY,
-            'published_at' => Type::DATETIMETZ_IMMUTABLE,
-            'body' => Type::TEXT,
-            'headers' => Type::JSON,
-            'properties' => Type::JSON,
-            'priority' => Type::INTEGER,
-            'time_to_live' => Type::DATETIMETZ_IMMUTABLE,
-            'delayed_until' => Type::DATETIMETZ_IMMUTABLE,
+            'published_at' => Types::DATETIMETZ_IMMUTABLE,
+            'body' => Types::TEXT,
+            'headers' => Types::JSON,
+            'properties' => Types::JSON,
+            'priority' => Types::INTEGER,
+            'time_to_live' => Types::DATETIMETZ_IMMUTABLE,
+            'delayed_until' => Types::DATETIMETZ_IMMUTABLE,
             'uniq_key' => ParameterType::STRING,
         ]);
 
-        return $envelope;
+        return $envelope
+            ->with(new TransportMessageIdStamp($messageId))
+        ;
     }
 }

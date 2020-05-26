@@ -12,8 +12,6 @@ interface UniqueMessageInterface
     /**
      * The uniqueness key of this message.
      * Will be used to determine if another message is present in the queue.
-     *
-     * @return string
      */
     public function getUniquenessKey(): string;
 }
