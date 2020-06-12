@@ -200,7 +200,10 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     private function fetchMessage(): ?Envelope
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
-        $result = $this->select->execute()->fetch();
+        $result = $this->select
+            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->execute()->fetch();
+
         if (! $result) {
             return null;
         }
