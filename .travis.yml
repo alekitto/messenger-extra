@@ -2,6 +2,11 @@ language: php
 dist: xenial
 os: linux
 
+php:
+    - 7.3
+    - 7.4
+    - 8.0snapshot
+
 cache:
     directories:
         - $HOME/.composer/cache/files
@@ -29,7 +34,9 @@ script: vendor/bin/phpunit
 
 jobs:
     allow_failures:
-        - env: SYMFONY_VERSION='5.x-dev'
+        - env: SYMFONY_VERSION='5.x-dev' COMPOSER_STABILITY='dev'
+        - env: SYMFONY_VERSION='5.x-dev' COMPOSER_STABILITY='dev' COMPOSER_FLAGS='--ignore-platform-reqs'
+        - php: '8.0snapshot'
 
     include:
         - stage: Test
@@ -81,8 +88,6 @@ jobs:
             - composer self-update
             - if [ "$SYMFONY_VERSION" != "" ]; then composer require --dev --no-update symfony/messenger=$SYMFONY_VERSION; fi
             - if [ "$SYMFONY_SERIALIZER" != "" ]; then composer remove --dev --no-update kcs/serializer; fi
-        - stage: Test
-          php: 7.4
         - stage: Test
           php: '7.3'
           env: SYMFONY_VERSION='5.x-dev' COMPOSER_STABILITY='dev'
