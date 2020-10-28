@@ -2,8 +2,8 @@
 
 namespace Kcs\MessengerExtra\Tests\Middleware;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
-use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Kcs\MessengerExtra\Middleware\DoctrineClearIdentityMapMiddleware;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Prophecy\ObjectProphecy;

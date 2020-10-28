@@ -162,14 +162,14 @@ class DbalTransportTest extends TestCase
             });
 
         // Remove expired messages
-        $this->connection->executeUpdate(
+        $this->connection->executeStatement(
             'DELETE FROM messenger WHERE ((time_to_live IS NOT NULL) AND (time_to_live < :now)) AND (delivery_id IS NULL)',
             Argument::any(),
             [':now' => Types::DATETIMETZ_IMMUTABLE]
         )->shouldBeCalled();
 
         // Re-deliver old messages
-        $this->connection->executeUpdate(
+        $this->connection->executeStatement(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE (redeliver_after < :now) AND (delivery_id IS NOT NULL)',
             Argument::any(),
             [':now' => Types::DATETIMETZ_IMMUTABLE]
@@ -190,7 +190,7 @@ class DbalTransportTest extends TestCase
             ]));
 
         $deliveryId = null;
-        $this->connection->executeUpdate(
+        $this->connection->executeStatement(
             'UPDATE messenger SET delivery_id = :deliveryId, redeliver_after = :redeliverAfter WHERE (id = :messageId) AND (delivery_id IS NULL)',
             Argument::that(function ($arg) use (&$deliveryId): bool {
                 self::assertArrayHasKey(':messageId', $arg);

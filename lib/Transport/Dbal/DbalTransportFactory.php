@@ -2,8 +2,9 @@
 
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Common\Persistence\ManagerRegistry as ManagerRegistryV2;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\Persistence\ManagerRegistry as ManagerRegistryV3;
 use Kcs\MessengerExtra\Utils\UrlUtils;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -30,12 +31,16 @@ class DbalTransportFactory implements TransportFactoryInterface
     ];
 
     /**
-     * @var ManagerRegistry|null
+     * @var ManagerRegistryV2|ManagerRegistryV3|null
      */
     private $managerRegistry;
 
-    public function __construct(?ManagerRegistry $managerRegistry = null)
+    public function __construct($managerRegistry = null)
     {
+        if (null !== $managerRegistry && ! $managerRegistry instanceof ManagerRegistryV2 && ! $managerRegistry instanceof ManagerRegistryV3) {
+            throw new \TypeError(\sprintf('Argument 1 passed to %s must be an instance of Doctrine\Persistence\ManagerRegistry, Doctrine\Common\Persistence\ManagerRegistry or null, %s given', __METHOD__, \is_object($managerRegistry) ? 'instance of '.\get_class($managerRegistry) : \gettype($managerRegistry)));
+        }
+
         $this->managerRegistry = $managerRegistry;
     }
 

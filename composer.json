@@ -9,7 +9,7 @@
     },
     "require-dev": {
         "ext-mongodb": "^1.5",
-        "doctrine/dbal": "^2.10",
+        "doctrine/dbal": "^2.10|^3.0",
         "doctrine/orm": "^2.6",
         "kcs/serializer": "^2.0|^3.0",
         "mongodb/mongodb": "^1.4",

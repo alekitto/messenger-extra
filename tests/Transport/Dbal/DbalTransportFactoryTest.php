@@ -2,9 +2,9 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\Persistence\ManagerRegistry;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use PHPUnit\Framework\TestCase;
