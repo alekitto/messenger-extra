@@ -45,13 +45,21 @@ Supports delayed, prioritized, expiring (TTL) and unique messages.
 Use DSN with `mongodb` scheme with `/database/collection` path
 (database `default` and `queue` collection are used if not specified).
 
-For authenticated database, with user configured by database, DSN should
-specify mongodb authSource as `database` is removed from final URI :
+#### Mongodb authentication
 
+For authenticated database, with user configured per database, you could
+specify `authSource` option in DSN query string:
 
 ```
 mongodb://user:pass@server:port/database?authSource=database
 ```
+
+> :warning: NOTE that if a username is passed in DSN the `authSource` connection option
+is already added to the mongo uri when passing to the client library.
+Its value is equal to the database selected (`default` if missing).
+
+> :information_source: For information about the supported options in mongo DSN you can check
+the [official documentation page on PHP.net](https://www.php.net/mongodb-driver-manager.construct#mongodb-driver-manager.construct-urioptions)
 
 ### Null
 
