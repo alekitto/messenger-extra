@@ -38,12 +38,20 @@ event listener that will create the correct table during a schema update
 
 ### Mongo
 
-Transport using MongoDB PHP client as trasport.
+Transport using MongoDB PHP client as transport.
 
 Supports delayed, prioritized, expiring (TTL) and unique messages.
 
 Use DSN with `mongodb` scheme with `/database/collection` path
 (database `default` and `queue` collection are used if not specified).
+
+For authenticated database, with user configured by database, DSN should
+specify mongodb authSource as `database` is removed from final URI :
+
+
+```
+mongodb://user:pass@server:port/database?authSource=database
+```
 
 ### Null
 
@@ -74,7 +82,7 @@ If another message with the same uniqueness key is present, the message is disca
 
 ## Symfony bundle
 
-A symfony bundle is included in the code under /lib: 
+A symfony bundle is included in the code under /lib:
 Use `MessengerExtraBundle` to fully integrate this library into your symfony application.
 Just add this to `bundles.php`:
 
