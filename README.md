@@ -46,8 +46,12 @@ Use DSN with `mongodb` scheme with `/database/collection` path
 (database `default` and `queue` collection are used if not specified).
 
 For authenticated database, with user configured by database, DSN should
-specify mongodb authSource as `database` is removed from final URI
-`mongodb://user:pass@server:port/database?authSource=database`
+specify mongodb authSource as `database` is removed from final URI :
+
+
+```
+mongodb://user:pass@server:port/database?authSource=database
+```
 
 ### Null
 
