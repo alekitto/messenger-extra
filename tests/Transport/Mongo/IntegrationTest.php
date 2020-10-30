@@ -6,6 +6,7 @@ use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
 use Kcs\MessengerExtra\Tests\Fixtures\UniqueDummyMessage;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory;
+use Kcs\MessengerExtra\Utils\UrlUtils;
 use MongoDB\Client;
 use MongoDB\Driver\Exception\ConnectionTimeoutException;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +29,11 @@ class IntegrationTest extends TestCase
      */
     private $transport;
 
+    /**
+     * @var string
+     */
+    private $mongoUri;
+
     protected function setUp(): void
     {
         $serializer = new Serializer(
@@ -38,8 +44,13 @@ class IntegrationTest extends TestCase
             ])
         );
 
+        $this->mongoUri = getenv('MONGODB_URI') ?: 'mongodb://localhost:27017/';
+
+        $params = \parse_url($this->mongoUri);
+        $params['path'] = '/';
+
         $factory = new MongoTransportFactory();
-        $this->transport = $factory->createTransport('mongodb://localhost:27017/default/queue', [], $serializer);
+        $this->transport = $factory->createTransport(UrlUtils::buildUrl($params) . 'default/queue', [], $serializer);
 
         try {
             $this->dropCollection();
@@ -103,7 +114,12 @@ class IntegrationTest extends TestCase
 
     private function dropCollection(): void
     {
-        $client = new Client('mongodb://localhost:27017/');
+        $params = \parse_url($this->mongoUri);
+        $opts = isset($params['user']) ? [
+            'authSource' => 'default',
+        ] : [];
+
+        $client = new Client($this->mongoUri, $opts);
         $client->default->queue->drop();
     }
 }

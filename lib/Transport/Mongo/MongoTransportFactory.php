@@ -27,12 +27,16 @@ class MongoTransportFactory implements TransportFactoryInterface
         $params['path'] = '/';
 
         \parse_str($params['query'] ?? '', $opts);
+        $auth = isset($params['user']) ? [
+            'authSource' => $databaseName,
+        ] : [];
+
         $options = \array_merge($opts, $options, [
             'database_name' => $databaseName,
             'collection_name' => $tableName,
         ]);
 
-        return new MongoTransport(new Client(UrlUtils::buildUrl($params)), $serializer, $options);
+        return new MongoTransport(new Client(UrlUtils::buildUrl($params), $auth), $serializer, $options);
     }
 
     public function supports(string $dsn, array $options): bool
