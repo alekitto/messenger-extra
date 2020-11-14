@@ -158,6 +158,10 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      */
     public function find($id): ?Envelope
     {
+        if (\preg_match('/^[0-9a-f]+$/i', $id)) {
+            $id = \hex2bin($id);
+        }
+
         $deliveredMessage = $this->connection->createQueryBuilder()
             ->select('*')
             ->from($this->tableName)

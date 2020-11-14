@@ -154,6 +154,28 @@ class DbalTransportTest extends TestCase
         $this->transport->createTable();
     }
 
+    public function testFindWithHexId(): void
+    {
+        $connection = $this->connection->reveal();
+
+        $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
+        $this->connection->createQueryBuilder()
+            ->will(function () use ($connection) { return new QueryBuilder($connection); });
+
+        $id = '0124dfeea3f56c';
+        $this->connection
+            ->executeQuery('SELECT * FROM messenger WHERE id = :identifier LIMIT 1', [':identifier' => hex2bin($id)], [':identifier' => ParameterType::BINARY])
+            ->willReturn(new ArrayStatement([
+                ['id' => hex2bin($id), 'body' => '{}', 'headers' => '{"type":"stdClass"}'],
+            ]));
+
+        $message = $this->transport->find('0124dfeea3f56c');
+        self::assertNotNull($message);
+
+        $stamp = $message->last(TransportMessageIdStamp::class);
+        self::assertEquals($id, $stamp->getId());
+    }
+
     public function testReceive(): void
     {
         $this->connection->createQueryBuilder()
