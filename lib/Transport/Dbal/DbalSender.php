@@ -137,7 +137,7 @@ class DbalSender implements SenderInterface
         ]);
 
         return $envelope
-            ->with(new TransportMessageIdStamp($messageId))
+            ->with(new TransportMessageIdStamp(\bin2hex($messageId)))
         ;
     }
 }

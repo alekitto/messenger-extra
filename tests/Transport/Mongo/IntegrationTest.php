@@ -44,13 +44,13 @@ class IntegrationTest extends TestCase
             ])
         );
 
-        $this->mongoUri = getenv('MONGODB_URI') ?: 'mongodb://localhost:27017/';
+        $this->mongoUri = \getenv('MONGODB_URI') ?: 'mongodb://localhost:27017/';
 
         $params = \parse_url($this->mongoUri);
         $params['path'] = '/';
 
         $factory = new MongoTransportFactory();
-        $this->transport = $factory->createTransport(UrlUtils::buildUrl($params) . 'default/queue', [], $serializer);
+        $this->transport = $factory->createTransport(UrlUtils::buildUrl($params).'default/queue', [], $serializer);
 
         try {
             $this->dropCollection();

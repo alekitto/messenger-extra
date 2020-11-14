@@ -110,7 +110,9 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
 
             $this->ack($envelope);
         } catch (\Throwable $e) {
-            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
+            /** @var TransportMessageIdStamp $stamp */
+            $stamp = $envelope->last(TransportMessageIdStamp::class);
+            $this->redeliver(\hex2bin($stamp->getId()));
 
             throw $e;
         }
@@ -123,8 +125,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     {
         /** @var TransportMessageIdStamp $messageIdStamp */
         $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
-
-        $this->connection->delete($this->tableName, ['id' => $messageIdStamp->getId()], ['id' => ParameterType::BINARY]);
+        $this->connection->delete($this->tableName, ['id' => \hex2bin($messageIdStamp->getId())], ['id' => ParameterType::BINARY]);
     }
 
     /**
@@ -191,7 +192,11 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             'headers' => \json_decode($row['headers'], true),
         ]);
 
-        return $envelope->with(new TransportMessageIdStamp($row['id']));
+        if (\is_resource($row['id']) && false !== @\stream_get_meta_data($row['id'])) {
+            $row['id'] = \stream_get_contents($row['id']);
+        }
+
+        return $envelope->with(new TransportMessageIdStamp(\bin2hex($row['id'])));
     }
 
     /**
