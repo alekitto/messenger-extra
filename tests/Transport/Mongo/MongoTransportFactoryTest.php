@@ -5,20 +5,19 @@ namespace Kcs\MessengerExtra\Tests\Transport\Mongo;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransport;
 use Kcs\MessengerExtra\Transport\Mongo\MongoTransportFactory;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 class MongoTransportFactoryTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var SerializerInterface|ObjectProphecy
      */
-    private $serializer;
-
-    /**
-     * @var MongoTransportFactory
-     */
-    private $transportFactory;
+    private ObjectProphecy $serializer;
+    private MongoTransportFactory $transportFactory;
 
     protected function setUp(): void
     {

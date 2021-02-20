@@ -6,27 +6,22 @@ use Kcs\MessengerExtra\Adapter\Serializer\MessengerSerializer;
 use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
 use Kcs\Serializer\DeserializationContext;
 use Kcs\Serializer\SerializationContext;
-use Kcs\Serializer\Serializer;
 use Kcs\Serializer\SerializerBuilder;
 use Kcs\Serializer\SerializerInterface;
 use Kcs\Serializer\Type\Type;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\SerializerStamp;
 use Symfony\Component\Messenger\Stamp\ValidationStamp;
 
 class MessengerSerializerTest extends TestCase
 {
-    /**
-     * @var Serializer
-     */
-    private $serializer;
+    use ProphecyTrait;
 
-    /**
-     * @var MessengerSerializer
-     */
-    private $messengerSerializer;
+    private SerializerInterface $serializer;
+    private MessengerSerializer $messengerSerializer;
 
     /**
      * {@inheritdoc}

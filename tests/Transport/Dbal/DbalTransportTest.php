@@ -20,6 +20,7 @@ use Kcs\MessengerExtra\Message\UniqueMessageInterface;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
@@ -30,20 +31,18 @@ use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 
 class DbalTransportTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var EntityManagerInterface|ObjectProphecy
      */
-    private $em;
+    private ObjectProphecy $em;
 
     /**
      * @var Connection|ObjectProphecy
      */
-    private $connection;
-
-    /**
-     * @var DbalTransport
-     */
-    private $transport;
+    private ObjectProphecy $connection;
+    private DbalTransport $transport;
 
     protected function setUp(): void
     {

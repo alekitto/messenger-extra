@@ -1,11 +1,11 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Message;
 
 /**
  * Represents a message which should be delivered after a specified delay.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 interface DelayedMessageInterface
 {

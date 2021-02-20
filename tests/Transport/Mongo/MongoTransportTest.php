@@ -14,6 +14,7 @@ use MongoDB\Database;
 use MongoDB\InsertOneResult;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -22,15 +23,13 @@ use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 
 class MongoTransportTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var Collection|ObjectProphecy
      */
-    private $collection;
-
-    /**
-     * @var MongoTransport
-     */
-    private $transport;
+    private ObjectProphecy $collection;
+    private MongoTransport $transport;
 
     protected function setUp(): void
     {

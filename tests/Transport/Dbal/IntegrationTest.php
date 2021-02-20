@@ -22,15 +22,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 class IntegrationTest extends TestCase
 {
-    /**
-     * @var DbalTransport
-     */
-    private $transport;
-
-    /**
-     * @var string
-     */
-    private $dsn;
+    private DbalTransport $transport;
+    private string $dsn;
 
     protected function setUp(): void
     {

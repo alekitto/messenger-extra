@@ -9,25 +9,24 @@ use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 class DbalTransportFactoryTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var ManagerRegistry|ObjectProphecy
      */
-    private $managerRegistry;
+    private ObjectProphecy $managerRegistry;
 
     /**
      * @var SerializerInterface|ObjectProphecy
      */
-    private $serializer;
-
-    /**
-     * @var DbalTransportFactory
-     */
-    private $transportFactory;
+    private ObjectProphecy $serializer;
+    private DbalTransportFactory $transportFactory;
 
     protected function setUp(): void
     {

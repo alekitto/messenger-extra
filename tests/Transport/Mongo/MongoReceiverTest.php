@@ -13,7 +13,7 @@ use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 
 class MongoReceiverTest extends TestCase
 {
-    public function testAll()
+    public function testAll(): void
     {
         $serializer = $this->createSerializer();
 
@@ -28,7 +28,7 @@ class MongoReceiverTest extends TestCase
         self::assertEquals(new DummyMessage('Hi'), $actualEnvelopes[0]->getMessage());
     }
 
-    public function testFind()
+    public function testFind(): void
     {
         $serializer = $this->createSerializer();
 
@@ -41,7 +41,7 @@ class MongoReceiverTest extends TestCase
         self::assertEquals(new DummyMessage('Hi'), $actualEnvelope->getMessage());
     }
 
-    private function createEnvelope()
+    private function createEnvelope(): array
     {
         return [
             '_id' => '5a2493c33c95a1281836eb6a',
@@ -52,7 +52,7 @@ class MongoReceiverTest extends TestCase
         ];
     }
 
-    private function createSerializer()
+    private function createSerializer(): Serializer
     {
         return new Serializer(
             new \Symfony\Component\Serializer\Serializer([new ObjectNormalizer()], ['json' => new JsonEncoder()])

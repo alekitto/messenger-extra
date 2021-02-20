@@ -1,14 +1,19 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
+use PDO;
 use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
+use Safe\DateTimeImmutable;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
@@ -16,55 +21,35 @@ use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Throwable;
+
+use function assert;
+use function bin2hex;
+use function is_resource;
+use function json_decode;
+use function method_exists;
+use function microtime;
+use function Safe\hex2bin;
+use function Safe\preg_match;
+use function Safe\stream_get_contents;
+
+use const JSON_THROW_ON_ERROR;
 
 /**
  * Serializer Messenger receiver to get messages from DBAL connection.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, ListableReceiverInterface
 {
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
+    private SerializerInterface $serializer;
+    private string $tableName;
+    private Connection $connection;
+    private float $redeliverMessagesLastExecutedAt;
+    private float $removeExpiredMessagesLastExecutedAt;
+    private StringCodec $codec;
+    private QueryBuilder $select;
+    private QueryBuilder $update;
 
-    /**
-     * @var string
-     */
-    private $tableName;
-
-    /**
-     * @var Connection
-     */
-    private $connection;
-
-    /**
-     * @var float
-     */
-    private $redeliverMessagesLastExecutedAt;
-
-    /**
-     * @var float
-     */
-    private $removeExpiredMessagesLastExecutedAt;
-
-    /**
-     * @var StringCodec
-     */
-    private $codec;
-
-    /**
-     * @var QueryBuilder
-     */
-    private $select;
-
-    /**
-     * @var QueryBuilder
-     */
-    private $update;
-
-    public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
+    public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
@@ -79,7 +64,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
             ->addOrderBy('id', 'asc')
-            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':delayedUntil', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->setMaxResults(1);
 
         $this->update = $this->connection->createQueryBuilder()
@@ -87,8 +72,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->set('delivery_id', ':deliveryId')
             ->set('redeliver_after', ':redeliverAfter')
             ->andWhere('id = :messageId')
-            ->andWhere('delivery_id IS NULL')
-        ;
+            ->andWhere('delivery_id IS NULL');
     }
 
     /**
@@ -99,9 +83,8 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         $this->removeExpiredMessages();
         $this->redeliverMessages();
 
-        /** @var Envelope $envelope */
         $envelope = $this->fetchMessage();
-        if (null === $envelope) {
+        if ($envelope === null) {
             return;
         }
 
@@ -109,28 +92,24 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             yield $envelope;
 
             $this->ack($envelope);
-        } catch (\Throwable $e) {
-            /** @var TransportMessageIdStamp $stamp */
+        } catch (Throwable $e) {
             $stamp = $envelope->last(TransportMessageIdStamp::class);
-            $this->redeliver(\hex2bin($stamp->getId()));
+            assert($stamp instanceof TransportMessageIdStamp);
+
+            $this->redeliver(hex2bin($stamp->getId()));
 
             throw $e;
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
-        /** @var TransportMessageIdStamp $messageIdStamp */
         $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
-        $this->connection->delete($this->tableName, ['id' => \hex2bin($messageIdStamp->getId())], ['id' => ParameterType::BINARY]);
+        assert($messageIdStamp instanceof TransportMessageIdStamp);
+
+        $this->connection->delete($this->tableName, ['id' => hex2bin($messageIdStamp->getId())], ['id' => ParameterType::BINARY]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
         $this->ack($envelope);
@@ -139,68 +118,83 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     /**
      * {@inheritdoc}
      */
-    public function all(int $limit = null): iterable
+    public function all(?int $limit = null): iterable
     {
         $statement = $this->connection->createQueryBuilder()
             ->select('*')
             ->from($this->tableName)
             ->setMaxResults($limit)
-            ->execute()
-        ;
+            ->execute();
 
-        while (($row = $statement->fetch())) {
+        assert($statement instanceof ResultStatement);
+        $method = method_exists($statement, 'fetchAssociative') ? 'fetchAssociative' : 'fetch';
+        while (($row = $statement->{$method}())) {
             yield $this->hydrate($row);
         }
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $id
      */
     public function find($id): ?Envelope
     {
-        if (\preg_match('/^[0-9a-f]+$/i', $id)) {
-            $id = \hex2bin($id);
+        if (preg_match('/^[0-9a-f]+$/i', $id)) {
+            $id = hex2bin($id);
         }
 
-        $deliveredMessage = $this->connection->createQueryBuilder()
+        $statement = $this->connection->createQueryBuilder()
             ->select('*')
             ->from($this->tableName)
             ->andWhere('id = :identifier')
             ->setParameter(':identifier', $id, ParameterType::BINARY)
             ->setMaxResults(1)
-            ->execute()
-            ->fetch()
-        ;
+            ->execute();
+
+        assert($statement instanceof ResultStatement);
+        if (method_exists($statement, 'fetchAssociative')) {
+            $deliveredMessage = $statement->fetchAssociative();
+        } else {
+            $deliveredMessage = $statement->fetch(PDO::FETCH_ASSOC);
+        }
 
         return $deliveredMessage ? $this->hydrate($deliveredMessage) : null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getMessageCount(): int
     {
-        return (int) $this->connection->createQueryBuilder()
+        $statement = $this->connection->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($this->tableName)
             ->setMaxResults(1)
-            ->execute()
-            ->fetchColumn()
-        ;
+            ->execute();
+
+        assert($statement instanceof ResultStatement);
+        if (method_exists($statement, 'fetchOne')) {
+            return (int) $statement->fetchOne();
+        }
+
+        return (int) $statement->fetchColumn();
     }
 
+    /**
+     * @param array<string, string> $row
+     *
+     * @phpstan-param array{body:string, headers:string, id:resource|string} $row
+     */
     private function hydrate(array $row): Envelope
     {
         $envelope = $this->serializer->decode([
             'body' => $row['body'],
-            'headers' => \json_decode($row['headers'], true),
+            'headers' => json_decode($row['headers'], true, 512, JSON_THROW_ON_ERROR),
         ]);
 
-        if (\is_resource($row['id']) && false !== @\stream_get_meta_data($row['id'])) {
-            $row['id'] = \stream_get_contents($row['id']);
+        if (is_resource($row['id'])) {
+            $row['id'] = stream_get_contents($row['id']);
         }
 
-        return $envelope->with(new TransportMessageIdStamp(\bin2hex($row['id'])));
+        return $envelope->with(new TransportMessageIdStamp(bin2hex($row['id'])));
     }
 
     /**
@@ -209,44 +203,55 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     private function fetchMessage(): ?Envelope
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
-        $result = $this->select
-            ->setParameter(':delayedUntil', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
-            ->execute()->fetch();
+        $statement = $this->select
+            ->setParameter(':delayedUntil', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->execute();
+
+        assert($statement instanceof ResultStatement);
+        if (method_exists($statement, 'fetchAssociative')) {
+            $result = $statement->fetchAssociative();
+        } else {
+            $result = $statement->fetch(PDO::FETCH_ASSOC);
+        }
 
         if (! $result) {
             return null;
         }
 
         $id = $result['id'];
-        if (\is_resource($id)) {
-            $id = \stream_get_contents($id);
+        if (is_resource($id)) {
+            $id = stream_get_contents($id);
         }
 
         $this->update
             ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
-            ->setParameter(':redeliverAfter', new \DateTimeImmutable('+5 minutes'), Types::DATETIMETZ_IMMUTABLE)
-            ->setParameter(':messageId', $id, ParameterType::BINARY)
-        ;
+            ->setParameter(':redeliverAfter', new DateTimeImmutable('+5 minutes'), Types::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':messageId', $id, ParameterType::BINARY);
 
         if ($this->update->execute()) {
-            $deliveredMessage = $this->connection->createQueryBuilder()
+            $statement = $this->connection->createQueryBuilder()
                 ->select('*')
                 ->from($this->tableName)
                 ->andWhere('delivery_id = :deliveryId')
                 ->setParameter(':deliveryId', $deliveryId, ParameterType::BINARY)
                 ->setMaxResults(1)
-                ->execute()
-                ->fetch()
-            ;
+                ->execute();
+
+            assert($statement instanceof ResultStatement);
+            if (method_exists($statement, 'fetchAssociative')) {
+                $deliveredMessage = $statement->fetchAssociative();
+            } else {
+                $deliveredMessage = $statement->fetch(PDO::FETCH_ASSOC);
+            }
 
             // the message has been removed by a 3rd party, such as truncate operation.
-            if (false === $deliveredMessage) {
+            if ($deliveredMessage === false) {
                 return null;
             }
 
             if (
                 empty($deliveredMessage['time_to_live']) ||
-                new \DateTimeImmutable($deliveredMessage['time_to_live']) > new \DateTimeImmutable()
+                new DateTimeImmutable($deliveredMessage['time_to_live']) > new DateTimeImmutable()
             ) {
                 return $this->hydrate($deliveredMessage);
             }
@@ -260,9 +265,9 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      */
     private function redeliverMessages(): void
     {
-        if (null === $this->redeliverMessagesLastExecutedAt) {
-            $this->redeliverMessagesLastExecutedAt = \microtime(true);
-        } elseif ((\microtime(true) - $this->redeliverMessagesLastExecutedAt) < 1) {
+        if (! isset($this->redeliverMessagesLastExecutedAt)) {
+            $this->redeliverMessagesLastExecutedAt = microtime(true);
+        } elseif (microtime(true) - $this->redeliverMessagesLastExecutedAt < 1) {
             return;
         }
 
@@ -271,12 +276,11 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->set('delivery_id', ':deliveryId')
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
-            ->setParameter(':now', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->setParameter(':now', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->setParameter(':deliveryId', null)
-            ->execute()
-        ;
+            ->execute();
 
-        $this->redeliverMessagesLastExecutedAt = \microtime(true);
+        $this->redeliverMessagesLastExecutedAt = microtime(true);
     }
 
     /**
@@ -284,9 +288,9 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      */
     private function removeExpiredMessages(): void
     {
-        if (null === $this->removeExpiredMessagesLastExecutedAt) {
-            $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
-        } elseif ((\microtime(true) - $this->removeExpiredMessagesLastExecutedAt) < 1) {
+        if (! isset($this->removeExpiredMessagesLastExecutedAt)) {
+            $this->removeExpiredMessagesLastExecutedAt = microtime(true);
+        } elseif (microtime(true) - $this->removeExpiredMessagesLastExecutedAt < 1) {
             return;
         }
 
@@ -294,11 +298,10 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->delete($this->tableName)
             ->andWhere('(time_to_live IS NOT NULL) AND (time_to_live < :now)')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter(':now', new \DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
-            ->execute()
-        ;
+            ->setParameter(':now', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->execute();
 
-        $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
+        $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }
 
     /**
@@ -312,7 +315,6 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->andWhere('id = :id')
             ->setParameter(':id', $id, ParameterType::BINARY)
             ->setParameter(':deliveryId', null)
-            ->execute()
-        ;
+            ->execute();
     }
 }

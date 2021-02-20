@@ -24,15 +24,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 class IntegrationTest extends TestCase
 {
-    /**
-     * @var MongoTransport
-     */
-    private $transport;
-
-    /**
-     * @var string
-     */
-    private $mongoUri;
+    private MongoTransport $transport;
+    private string $mongoUri;
 
     protected function setUp(): void
     {

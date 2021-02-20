@@ -6,6 +6,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Kcs\MessengerExtra\Middleware\DoctrineClearIdentityMapMiddleware;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
@@ -14,15 +15,13 @@ use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 
 class DoctrineClearIdentityMapMiddlewareTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var ManagerRegistry|ObjectProphecy
      */
-    private $doctrine;
-
-    /**
-     * @var DoctrineClearIdentityMapMiddleware
-     */
-    private $middleware;
+    private ObjectProphecy $doctrine;
+    private DoctrineClearIdentityMapMiddleware $middleware;
 
     protected function setUp(): void
     {

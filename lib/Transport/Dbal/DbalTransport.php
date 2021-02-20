@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
@@ -14,39 +16,25 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\SetupableTransportInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
+use function assert;
+
 /**
  * Serializer Messenger Transport to produce and consume messages from/to DBAL connection.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class DbalTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface, SetupableTransportInterface
 {
-    /**
-     * @var Connection
-     */
-    private $connection;
+    private Connection $connection;
+    private ?SerializerInterface $serializer;
+    private DbalReceiver $receiver;
+    private DbalSender $sender;
+
+    /** @var array<string, mixed> $options */
+    private array $options;
 
     /**
-     * @var SerializerInterface
+     * @param array<string, mixed> $options
      */
-    private $serializer;
-
-    /**
-     * @var array
-     */
-    private $options;
-
-    /**
-     * @var DbalReceiver
-     */
-    private $receiver;
-
-    /**
-     * @var DbalSender
-     */
-    private $sender;
-
-    public function __construct(Connection $connection, SerializerInterface $serializer = null, array $options = [])
+    public function __construct(Connection $connection, ?SerializerInterface $serializer = null, array $options = [])
     {
         $this->connection = $connection;
         $this->serializer = $serializer;
@@ -66,9 +54,6 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
         $this->_createTable($schema);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function setup(): void
     {
         $this->createTable();
@@ -81,11 +66,14 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     {
         $this->connection->connect();
         $schemaManager = $this->connection->getSchemaManager();
-        $schema = $schemaManager->createSchema();
+        assert($schemaManager !== null);
 
-        if (! $schema->hasTable($this->options['table_name'])) {
-            $schemaManager->createTable($this->_createTable($schema));
+        $schema = $schemaManager->createSchema();
+        if ($schema->hasTable($this->options['table_name'])) {
+            return;
         }
+
+        $schemaManager->createTable($this->_createTable($schema));
     }
 
     /**
@@ -96,27 +84,31 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
         return ($this->receiver ?? $this->getReceiver())->get();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
         ($this->receiver ?? $this->getReceiver())->ack($envelope);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
         ($this->receiver ?? $this->getReceiver())->reject($envelope);
     }
 
-    public function all(int $limit = null): iterable
+    /**
+     * {@inheritdoc}
+     *
+     * @return iterable<Envelope>
+     */
+    public function all(?int $limit = null): iterable
     {
         yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @param mixed $id
+     */
     public function find($id): ?Envelope
     {
         return ($this->receiver ?? $this->getReceiver())->find($id);
@@ -127,9 +119,6 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
         return ($this->receiver ?? $this->getReceiver())->getMessageCount();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function send(Envelope $envelope): Envelope
     {
         return ($this->sender ?? $this->getSender())->send($envelope);
@@ -145,7 +134,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
         return $this->sender = new DbalSender($this->connection, $this->options['table_name'], $this->serializer);
     }
 
-    private function _createTable(Schema $schema): Table
+    private function _createTable(Schema $schema): Table // phpcs:ignore
     {
         $table = $schema->createTable($this->options['table_name']);
         $table->addColumn('id', Types::BINARY, ['length' => 16, 'fixed' => true]);

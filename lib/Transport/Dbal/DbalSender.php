@@ -1,8 +1,12 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Types;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
@@ -20,34 +24,25 @@ use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
+use function assert;
+use function bin2hex;
+use function mb_strlen;
+use function method_exists;
+use function microtime;
+use function Safe\sprintf;
+use function sha1;
+
 /**
  * Serializer Messenger sender to send messages through DBAL connection.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class DbalSender implements SenderInterface
 {
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
+    private SerializerInterface $serializer;
+    private string $tableName;
+    private Connection $connection;
+    private OrderedTimeCodec $codec;
 
-    /**
-     * @var string
-     */
-    private $tableName;
-
-    /**
-     * @var Connection
-     */
-    private $connection;
-
-    /**
-     * @var OrderedTimeCodec
-     */
-    private $codec;
-
-    public function __construct(Connection $connection, string $tableName, SerializerInterface $serializer = null)
+    public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
@@ -56,29 +51,27 @@ class DbalSender implements SenderInterface
         $this->codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function send(Envelope $envelope): Envelope
     {
         $message = $envelope->getMessage();
         $delay = null;
 
-        /** @var DelayStamp $delayStamp */
-        if (null !== ($delayStamp = $envelope->last(DelayStamp::class))) {
-            $delay = new \DateTimeImmutable('+ '.$delayStamp->getDelay().' milliseconds');
+        $delayStamp = $envelope->last(DelayStamp::class);
+        assert($delayStamp instanceof DelayStamp || $delayStamp === null);
+        if ($delayStamp !== null) {
+            /** @phpstan-ignore-next-line */
+            $delay = new DateTimeImmutable('+ ' . $delayStamp->getDelay() . ' milliseconds');
         }
 
         $encodedMessage = $this->serializer->encode($envelope
             ->withoutStampsOfType(SentStamp::class)
             ->withoutStampsOfType(TransportMessageIdStamp::class)
-            ->withoutStampsOfType(DelayStamp::class)
-        );
+            ->withoutStampsOfType(DelayStamp::class));
 
         $messageId = $this->codec->encodeBinary(Uuid::uuid1());
         $values = [
             'id' => $messageId,
-            'published_at' => new \DateTimeImmutable(),
+            'published_at' => new DateTimeImmutable(), /** @phpstan-ignore-line */
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],
@@ -89,12 +82,13 @@ class DbalSender implements SenderInterface
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
-            $values['time_to_live'] = (new \DateTimeImmutable())->modify('+ '.$message->getTtl().' seconds');
+            /** @phpstan-ignore-next-line */
+            $values['time_to_live'] = (new DateTimeImmutable())->modify('+ ' . $message->getTtl() . ' seconds');
         }
 
         if ($message instanceof DelayedMessageInterface) {
-            $timestamp = \microtime(true) + ($message->getDelay() / 1000);
-            $values['delayed_until'] = \DateTimeImmutable::createFromFormat('U.u', \sprintf('%.6f', $timestamp));
+            $timestamp = microtime(true) + ($message->getDelay() / 1000);
+            $values['delayed_until'] = DateTimeImmutable::createFromFormat('U.u', sprintf('%.6f', $timestamp));
         }
 
         if ($message instanceof PriorityAwareMessageInterface) {
@@ -103,21 +97,27 @@ class DbalSender implements SenderInterface
 
         if ($message instanceof UniqueMessageInterface) {
             $uniqKey = $message->getUniquenessKey();
-            if (\mb_strlen($uniqKey) >= 60) {
-                $uniqKey = \sha1($uniqKey);
+            if (mb_strlen($uniqKey) >= 60) {
+                $uniqKey = sha1($uniqKey);
             }
 
             $expr = $this->connection->getExpressionBuilder();
-            $result = $this->connection->createQueryBuilder()
+            $statement = $this->connection->createQueryBuilder()
                 ->select('id')
                 ->from($this->tableName)
                 ->where($expr->eq('uniq_key', ':uniq_key'))
                 ->andWhere($expr->isNull('delivery_id'))
                 ->setParameter('uniq_key', $uniqKey)
-                ->execute()->fetchColumn()
-            ;
+                ->execute();
 
-            if (false !== $result) {
+            assert($statement instanceof ResultStatement);
+            if (method_exists($statement, 'fetchOne')) {
+                $result = $statement->fetchOne();
+            } else {
+                $result = $statement->fetchColumn();
+            }
+
+            if ($result !== false) {
                 return $envelope;
             }
 
@@ -137,7 +137,6 @@ class DbalSender implements SenderInterface
         ]);
 
         return $envelope
-            ->with(new TransportMessageIdStamp(\bin2hex($messageId)))
-        ;
+            ->with(new TransportMessageIdStamp(bin2hex($messageId)));
     }
 }

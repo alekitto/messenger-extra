@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
@@ -12,32 +14,18 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
  * Serializer Messenger Transport to produce and consume messages from/to Mongo database.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
-    /**
-     * @var Collection
-     */
-    private $collection;
+    private Collection $collection;
+    private ?SerializerInterface $serializer;
+    private MongoReceiver $receiver;
+    private MongoSender $sender;
 
     /**
-     * @var SerializerInterface
+     * @param array<string, mixed> $options
      */
-    private $serializer;
-
-    /**
-     * @var MongoReceiver
-     */
-    private $receiver;
-
-    /**
-     * @var MongoSender
-     */
-    private $sender;
-
-    public function __construct(Client $client, SerializerInterface $serializer = null, array $options = [])
+    public function __construct(Client $client, ?SerializerInterface $serializer = null, array $options = [])
     {
         $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
         $this->serializer = $serializer;
@@ -51,17 +39,11 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
         return ($this->receiver ?? $this->getReceiver())->get();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
         ($this->receiver ?? $this->getReceiver())->ack($envelope);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
         ($this->receiver ?? $this->getReceiver())->reject($envelope);
@@ -70,30 +52,26 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     /**
      * {@inheritdoc}
      */
-    public function all(int $limit = null): iterable
+    public function all(?int $limit = null): iterable
     {
         yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $id
      */
     public function find($id): ?Envelope
     {
         return ($this->receiver ?? $this->getReceiver())->find($id);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getMessageCount(): int
     {
         return ($this->receiver ?? $this->getReceiver())->getMessageCount();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function send(Envelope $envelope): Envelope
     {
         return ($this->sender ?? $this->getSender())->send($envelope);

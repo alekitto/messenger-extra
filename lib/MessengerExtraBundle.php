@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra;
 
@@ -10,26 +12,21 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 class MessengerExtraBundle extends Bundle
 {
-    /**
-     * {@inheritdoc}
-     */
     public function build(ContainerBuilder $container): void
     {
         $container
             ->addCompilerPass(new Compiler\AddSerializerAliasPass())
             ->addCompilerPass(new Compiler\RegisterDoctrineEventsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50)
             ->addCompilerPass(new Compiler\SerializerContextConfigurationPass())
-            ->addCompilerPass(new Compiler\RemoveDefaultDoctrineTransportPass())
-        ;
+            ->addCompilerPass(new Compiler\RemoveDefaultDoctrineTransportPass());
 
-        if ($container->getParameter('kernel.debug')) {
-            $container->addCompilerPass(new Compiler\CheckDependencyPass(), PassConfig::TYPE_AFTER_REMOVING);
+        if (! $container->getParameter('kernel.debug')) {
+            return;
         }
+
+        $container->addCompilerPass(new Compiler\CheckDependencyPass(), PassConfig::TYPE_AFTER_REMOVING);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function getContainerExtensionClass(): string
     {
         return MessengerExtraExtension::class;

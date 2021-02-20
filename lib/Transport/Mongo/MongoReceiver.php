@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
@@ -12,30 +14,22 @@ use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Throwable;
+
+use function assert;
+use function microtime;
+use function time;
 
 /**
  * Serializer Messenger receiver to get messages from MongoDB connection.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
+    private SerializerInterface $serializer;
+    private Collection $collection;
+    private float $removeExpiredMessagesLastExecutedAt;
 
-    /**
-     * @var Collection
-     */
-    private $collection;
-
-    /**
-     * @var float
-     */
-    private $removeExpiredMessagesLastExecutedAt;
-
-    public function __construct(Collection $collection, SerializerInterface $serializer = null)
+    public function __construct(Collection $collection, ?SerializerInterface $serializer = null)
     {
         $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
@@ -49,7 +43,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         $this->removeExpiredMessages();
 
         $envelope = $this->fetchMessage();
-        if (null === $envelope) {
+        if ($envelope === null) {
             return;
         }
 
@@ -57,27 +51,24 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             yield $envelope;
 
             $this->ack($envelope);
-        } catch (\Throwable $e) {
-            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
+        } catch (Throwable $e) {
+            $stamp = $envelope->last(TransportMessageIdStamp::class);
+            assert($stamp instanceof TransportMessageIdStamp);
+
+            $this->redeliver($stamp->getId());
 
             throw $e;
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
-        /** @var TransportMessageIdStamp $messageIdStamp */
         $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
+        assert($messageIdStamp instanceof TransportMessageIdStamp);
 
         $this->collection->deleteOne(['_id' => $messageIdStamp->getId()]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
         $this->ack($envelope);
@@ -86,13 +77,14 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     /**
      * {@inheritdoc}
      */
-    public function all(int $limit = null): iterable
+    public function all(?int $limit = null): iterable
     {
         $options = [];
-        if (null !== $options) {
+        if ($options !== null) {
             $options['limit'] = $limit;
         }
 
+        /** @phpstan-var array{_id:string, body:string, headers:string, id:resource|string, time_to_live: ?int} $deliveredMessage */
         foreach ($this->collection->find([], $options) as $deliveredMessage) {
             yield $this->hydrate((array) $deliveredMessage);
         }
@@ -100,11 +92,14 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $id
      */
     public function find($id): ?Envelope
     {
         $id = $id instanceof ObjectId ? $id : new ObjectId($id);
 
+        /** @phpstan-var array{_id: string, body: string, headers: string, id: (resource|string), time_to_live: ?int}|null $deliveredMessage */
         $deliveredMessage = $this->collection->findOne(['_id' => $id]);
         if (! $deliveredMessage) {
             return null;
@@ -113,14 +108,16 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         return $this->hydrate((array) $deliveredMessage);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getMessageCount(): int
     {
         return $this->collection->countDocuments();
     }
 
+    /**
+     * @param array<string, string> $row
+     *
+     * @phpstan-param array{_id:string, body:string, headers:string, id:resource|string, time_to_live: ?int} $row
+     */
     private function hydrate(array $row): Envelope
     {
         $envelope = $this->serializer->decode($row);
@@ -134,7 +131,9 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     private function fetchMessage(): ?Envelope
     {
         $deliveryId = Uuid::uuid4()->toString();
-        $now = \time();
+        $now = time();
+
+        /** @phpstan-var array{_id: string, body: string, headers: string, id: (resource|string), time_to_live: ?int}|null $message */
         $message = $this->collection->findOneAndUpdate(
             [
                 '$and' => [
@@ -166,11 +165,11 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             ]
         );
 
-        if (null === $message) {
+        if ($message === null) {
             return null;
         }
 
-        if (empty($message['time_to_live']) || $message['time_to_live'] > \time()) {
+        if (empty($message['time_to_live']) || $message['time_to_live'] > time()) {
             return $this->hydrate($message);
         }
 
@@ -182,17 +181,17 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     private function removeExpiredMessages(): void
     {
-        if (null === $this->removeExpiredMessagesLastExecutedAt) {
-            $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
-        } elseif ((\microtime(true) - $this->removeExpiredMessagesLastExecutedAt) < 1) {
+        if (! isset($this->removeExpiredMessagesLastExecutedAt)) {
+            $this->removeExpiredMessagesLastExecutedAt = microtime(true);
+        } elseif (microtime(true) - $this->removeExpiredMessagesLastExecutedAt < 1) {
             return;
         }
 
         $this->collection->deleteMany([
-            ['time_to_live' => ['$lt' => \time()]],
+            ['time_to_live' => ['$lt' => time()]],
         ]);
 
-        $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
+        $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }
 
     /**
@@ -200,9 +199,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     private function redeliver(string $id): void
     {
-        $this->collection->updateOne([
-            '_id' => $id,
-        ], [
+        $this->collection->updateOne(['_id' => $id], [
             '$set' => [
                 'delivery_id' => null,
                 'redeliver_at' => null,
