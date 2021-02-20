@@ -3,19 +3,21 @@
     "description": "Additional transports and serializer support for symfony messenger",
     "type": "library",
     "require": {
-        "php": "^7.1|^8.0",
+        "php": "^7.4|^8.0",
         "ext-json": "*",
-        "symfony/messenger": "^4.3|^5.0"
+        "symfony/messenger": "^4.4|^5.0"
     },
     "require-dev": {
         "ext-mongodb": "^1.5",
         "doctrine/dbal": "^2.10|^3.0",
         "doctrine/orm": "^2.6",
-        "kcs/serializer": "^2.0|^3.0",
+        "kcs/serializer": "^2.0|^3.0|^4.0",
         "mongodb/mongodb": "^1.4",
         "phpunit/php-invoker": "^2.0|^3.0",
-        "phpunit/phpunit": "^7.5|^8.0|^9.0",
+        "phpunit/phpunit": "^9.4",
         "ramsey/uuid": "^3.8",
+        "roave/security-advisories": "dev-master",
+        "solido/php-coding-standards": "dev-master",
         "symfony/framework-bundle": "^4.2|^5.0",
         "symfony/process": "^4.2|^5.0",
         "symfony/property-access": "^4.2|^5.0",

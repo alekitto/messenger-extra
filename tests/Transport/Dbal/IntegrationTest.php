@@ -50,12 +50,12 @@ class IntegrationTest extends TestCase
         switch ($db) {
             case 'mysql':
             case 'mariadb':
-                $connection = DriverManager::getConnection(['url' => 'mysql://root@localhost']);
-                $this->transport = $factory->createTransport($this->dsn = 'mysql://root@localhost/messenger', [], $serializer);
+                $connection = DriverManager::getConnection(['url' => 'mysql://root@127.0.0.1/messenger']);
+                $this->transport = $factory->createTransport($this->dsn = 'mysql://root@127.0.0.1/messenger', [], $serializer);
                 break;
 
             case 'postgresql':
-                $connection = DriverManager::getConnection(['url' => 'pgsql://postgres@localhost']);
+                $connection = DriverManager::getConnection(['url' => 'pgsql://postgres@localhost/messenger']);
                 $this->transport = $factory->createTransport($this->dsn = 'pgsql://postgres@localhost/messenger', [], $serializer);
                 break;
 

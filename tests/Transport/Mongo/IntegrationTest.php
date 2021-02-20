@@ -78,7 +78,8 @@ class IntegrationTest extends TestCase
         $receivedMessages = 0;
         $workerClass = new \ReflectionClass(Worker::class);
         $thirdArgument = $workerClass->getConstructor()->getParameters()[2];
-        if (EventDispatcherInterface::class === (string) $thirdArgument->getType()) {
+        $argumentType = $thirdArgument->getType();
+        if (EventDispatcherInterface::class === ($argumentType ? $argumentType->getName() : null)) {
             $worker = new Worker([$this->transport], new MessageBus(), $eventDispatcher = new EventDispatcher());
         } else {
             $worker = new Worker([$this->transport], new MessageBus(), [], $eventDispatcher = new EventDispatcher());

@@ -1,0 +1,58 @@
+name: Tests
+on:
+    push:
+        branches:
+            - master
+    pull_request: ~
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                database:
+                    - sqlite
+                    - mysql
+
+                symfony_version:
+                    - 4.4
+                    - ^5.0
+
+                symfony_serializer:
+                    - false
+                    - true
+
+                php_version:
+                    - '7.4'
+                    - '8.0'
+
+        name: Symfony ${{ matrix.symfony_version }} on PHP ${{ matrix.php_version }} with ${{ matrix.database }} database
+        services:
+            mysql:
+                image: mysql:5.7
+                env:
+                    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+                    MYSQL_DATABASE: messenger
+                ports:
+                    - 3306:3306
+
+            mongo:
+                image: mongo
+                ports:
+                    - 27017:27017
+
+        steps:
+            - uses: actions/checkout@v2
+            - name: Setup PHP with pecl extension
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php_version }}
+                  extensions: mongodb, :opcache
+            - run: composer require --dev --no-update symfony/messenger=${{ matrix.symfony_version }}
+            - run: composer remove --dev --no-update kcs/serializer
+              if: matrix.symfony_serializer
+            - run: composer install --ignore-platform-reqs
+            - run: vendor/bin/phpunit
+              env:
+                  DB: ${{ matrix.database }}
+                  MONGODB_URI: mongodb://localhost:27017/
