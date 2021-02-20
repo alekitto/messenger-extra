@@ -85,8 +85,9 @@ If another message with the same uniqueness key is present, the message is disca
 
 | Version    | Compatible Symfony Version | Build Status |
 |------------|----------------------------|--------------|
-| 2.x        | ^4.3, ^5.0                 | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=2.x)](https://travis-ci.com/alekitto/messenger-extra) |
-| 1.x        | 4.2.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=1.x)](https://travis-ci.com/alekitto/messenger-extra) |
+| >= 2.2.0   | ^4.4, ^5.0                 | [![Tests](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml/badge.svg?branch=2.x)](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml) |
+| 2.0, 2.1   | ^4.3, ^5.0                 | Not available |
+| 1.x        | 4.2.*                      | Not available |
 
 ## Symfony bundle
 

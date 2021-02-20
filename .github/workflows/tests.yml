@@ -3,6 +3,8 @@ on:
     push:
         branches:
             - master
+            - 1.x
+            - 2.x
     pull_request: ~
 
 jobs:
