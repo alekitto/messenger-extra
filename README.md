@@ -1,7 +1,7 @@
 Messenger Extra
 ===============
 
-[![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=master)](https://travis-ci.com/alekitto/messenger-extra)
+[![Tests](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml)
 
 This library provides additional transports (and other things) for the symfony messenger component.
 
