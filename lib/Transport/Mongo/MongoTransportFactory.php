@@ -56,6 +56,6 @@ class MongoTransportFactory implements TransportFactoryInterface
     {
         $scheme = parse_url($dsn, PHP_URL_SCHEME);
 
-        return $scheme === 'mongodb';
+        return $scheme === 'mongodb' || $scheme === 'mongodb+srv';
     }
 }
