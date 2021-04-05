@@ -109,11 +109,18 @@ class IntegrationTest extends TestCase
     private function dropCollection(): void
     {
         $params = \parse_url($this->mongoUri);
-        $opts = isset($params['user']) ? [
-            'authSource' => 'default',
-        ] : [];
+        $path = $params['path'];
+        if (\strpos($path, '/') === 0) {
+            $path = \substr($path, 1);
+        }
 
-        $client = new Client($this->mongoUri, $opts);
+        [$databaseName] = \explode('/', $path, 2) + [null, null];
+        $databaseName = $databaseName ?: 'default';
+
+        $params['path'] = '/';
+        $auth = isset($params['user']) ? ['authSource' => $databaseName] : [];
+
+        $client = new Client(UrlUtils::buildUrl($params), $auth);
         $client->default->queue->drop();
     }
 }
