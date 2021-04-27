@@ -180,7 +180,6 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
 
     /**
      * @param array<string, string> $row
-     *
      * @phpstan-param array{body:string, headers:string, id:resource|string} $row
      */
     private function hydrate(array $row): Envelope

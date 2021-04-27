@@ -31,7 +31,6 @@ class MessengerSerializer implements MessengerSerializerInterface
 
     /**
      * @param array<string, mixed> $context
-     *
      * @phpstan-param array{groups?: string[], object_to_populate?: object} $context
      */
     public function __construct(SerializerInterface $serializer, string $format = 'json', array $context = [])

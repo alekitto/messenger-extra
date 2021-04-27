@@ -115,7 +115,6 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
 
     /**
      * @param array<string, string> $row
-     *
      * @phpstan-param array{_id:string, body:string, headers:string, id:resource|string, time_to_live: ?int} $row
      */
     private function hydrate(array $row): Envelope

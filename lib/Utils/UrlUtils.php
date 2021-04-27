@@ -10,7 +10,6 @@ class UrlUtils
      * Build URL from parse_url array params.
      *
      * @param array<string, string> $url
-     *
      * @phpstan-param array{user?:string, pass?:string, scheme?:string, host?:string, port?:string, path?:string, query?:string, fragment?:string} $url
      */
     public static function buildUrl(array $url): string

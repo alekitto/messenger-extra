@@ -18,7 +18,6 @@ final class ContextConverter
      * Converts to SerializationContext.
      *
      * @param array<string, mixed> $context
-     *
      * @phpstan-param array{groups?: string[]} $context
      */
     public static function toSerializationContext(array $context): SerializationContext
@@ -36,7 +35,6 @@ final class ContextConverter
      * Converts to DeserializationContext.
      *
      * @param array<string, mixed> $context
-     *
      * @phpstan-param array{groups?: string[], object_to_populate?: object} $context
      */
     public static function toDeserializationContext(array $context): DeserializationContext
