@@ -5,6 +5,12 @@ Messenger Extra
 
 This library provides additional transports (and other things) for the symfony messenger component.
 
+## Install
+
+```
+composer require kcs/messenger-extra
+```
+
 ## Transports
 
 ### Doctrine DBAL
