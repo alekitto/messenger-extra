@@ -5,6 +5,7 @@ on:
             - master
             - 1.x
             - 2.x
+
     pull_request: ~
 
 jobs:
@@ -22,6 +23,8 @@ jobs:
                     - [8.0, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
                     - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
+                    - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
 
         name: Symfony ${{ matrix.versions[1] }} on PHP ${{ matrix.versions[0] }} with ${{ matrix.versions[2] }} database
         services:
@@ -48,6 +51,10 @@ jobs:
               with:
                   php-version: ${{ matrix.versions[0] }}
                   extensions: mongodb, :opcache
+            - name: Wait for mongo to be ready
+              uses: docker://toschneck/wait-for-it
+              with:
+                args: -q -t 60 mongo:27017
             - uses: docker://mongo
               if: matrix.versions[4]
               with:

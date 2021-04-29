@@ -41,7 +41,7 @@ class MongoTransportFactory implements TransportFactoryInterface
 
         $params['path'] = '/';
         parse_str($params['query'] ?? '', $opts);
-        $auth = isset($params['user']) ? ['authSource' => $databaseName] : [];
+        $auth = isset($params['user']) ? ['authSource' => $opts['authSource'] ?? $databaseName] : [];
 
         $options = array_merge($opts, $options, [
             'database_name' => $databaseName,

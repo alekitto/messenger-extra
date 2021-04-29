@@ -38,12 +38,8 @@ class IntegrationTest extends TestCase
         );
 
         $this->mongoUri = \getenv('MONGODB_URI') ?: 'mongodb://localhost:27017/';
-
-        $params = \parse_url($this->mongoUri);
-        $params['path'] = '/';
-
         $factory = new MongoTransportFactory();
-        $this->transport = $factory->createTransport(UrlUtils::buildUrl($params).'default/queue', [], $serializer);
+        $this->transport = $factory->createTransport($this->mongoUri, [], $serializer);
 
         try {
             $this->dropCollection();
@@ -118,7 +114,8 @@ class IntegrationTest extends TestCase
         $databaseName = $databaseName ?: 'default';
 
         $params['path'] = '/';
-        $auth = isset($params['user']) ? ['authSource' => $databaseName] : [];
+        parse_str($params['query'] ?? '', $opts);
+        $auth = isset($params['user']) ? ['authSource' => $opts['authSource'] ?? $databaseName] : [];
 
         $client = new Client(UrlUtils::buildUrl($params), $auth);
         $client->default->queue->drop();
