@@ -12,6 +12,8 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\MessageBus;
+use Symfony\Component\Messenger\Transport\Serialization\Normalizer\FlattenExceptionNormalizer;
+use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Worker;
 use Symfony\Component\Serializer as SerializerComponent;
@@ -29,13 +31,21 @@ class IntegrationTest extends TestCase
     {
         @\unlink(__DIR__.'/messenger.db');
 
-        $serializer = new Serializer(
-            new SerializerComponent\Serializer([
-                new SerializerComponent\Normalizer\ObjectNormalizer(),
-            ], [
-                'json' => new SerializerComponent\Encoder\JsonEncoder(),
-            ])
-        );
+        if (version_compare(InstalledVersions::getVersion('symfony/messenger'), '5.2.0', '>=')) {
+            $serializer = new Serializer(
+                new SerializerComponent\Serializer([
+                    new SerializerComponent\Normalizer\DateTimeZoneNormalizer(),
+                    new SerializerComponent\Normalizer\DateTimeNormalizer(),
+                    new FlattenExceptionNormalizer(),
+                    new SerializerComponent\Normalizer\ArrayDenormalizer(),
+                    new SerializerComponent\Normalizer\ObjectNormalizer(),
+                ], [
+                    'json' => new SerializerComponent\Encoder\JsonEncoder(),
+                ])
+            );
+        } else {
+            $serializer = new PhpSerializer();
+        }
 
         $factory = new DbalTransportFactory(null);
         $db = \getenv('DB') ?? 'sqlite';
