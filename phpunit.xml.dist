@@ -8,8 +8,8 @@
          enforceTimeLimit="true"
          failOnRisky="true"
          timeoutForSmallTests="5"
-         timeoutForMediumTests="5"
-         timeoutForLargeTests="10"
+         timeoutForMediumTests="10"
+         timeoutForLargeTests="30"
 >
   <coverage>
     <include>

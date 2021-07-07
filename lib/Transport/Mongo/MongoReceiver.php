@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
+use Doctrine\DBAL\Exception\RetryableException;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\TransportException;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
@@ -28,6 +30,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     private SerializerInterface $serializer;
     private Collection $collection;
     private float $removeExpiredMessagesLastExecutedAt;
+    private int $retryingSafetyCounter = 0;
 
     public function __construct(Collection $collection, ?SerializerInterface $serializer = null)
     {
@@ -50,14 +53,13 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         try {
             yield $envelope;
 
-            $this->ack($envelope);
+            $this->retryingSafetyCounter = 0; // reset counter
+        } catch (RetryableException $e) {
+            if (++$this->retryingSafetyCounter > 3) {
+                throw new TransportException($e->getMessage(), 0, $e);
+            }
         } catch (Throwable $e) {
-            $stamp = $envelope->last(TransportMessageIdStamp::class);
-            assert($stamp instanceof TransportMessageIdStamp);
-
-            $this->redeliver($stamp->getId());
-
-            throw $e;
+            throw new TransportException($e->getMessage(), 0, $e);
         }
     }
 

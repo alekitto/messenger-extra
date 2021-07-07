@@ -6,6 +6,7 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\ResultStatement;
+use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
@@ -15,6 +16,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Safe\DateTimeImmutable;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\TransportException;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
@@ -48,6 +50,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     private StringCodec $codec;
     private QueryBuilder $select;
     private QueryBuilder $update;
+    private int $retryingSafetyCounter = 0;
 
     public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
     {
@@ -91,14 +94,13 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         try {
             yield $envelope;
 
-            $this->ack($envelope);
+            $this->retryingSafetyCounter = 0; // reset counter
+        } catch (RetryableException $e) {
+            if (++$this->retryingSafetyCounter > 3) {
+                throw new TransportException($e->getMessage(), 0, $e);
+            }
         } catch (Throwable $e) {
-            $stamp = $envelope->last(TransportMessageIdStamp::class);
-            assert($stamp instanceof TransportMessageIdStamp);
-
-            $this->redeliver(hex2bin($stamp->getId()));
-
-            throw $e;
+            throw new TransportException($e->getMessage(), 0, $e);
         }
     }
 
