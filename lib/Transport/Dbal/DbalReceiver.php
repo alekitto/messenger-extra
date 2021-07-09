@@ -304,18 +304,4 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
 
         $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }
-
-    /**
-     * Redeliver a single message.
-     */
-    private function redeliver(string $id): void
-    {
-        $this->connection->createQueryBuilder()
-            ->update($this->tableName)
-            ->set('delivery_id', ':deliveryId')
-            ->andWhere('id = :id')
-            ->setParameter(':id', $id, ParameterType::BINARY)
-            ->setParameter(':deliveryId', null)
-            ->execute();
-    }
 }

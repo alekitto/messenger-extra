@@ -194,17 +194,4 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
 
         $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }
-
-    /**
-     * Redeliver a single message.
-     */
-    private function redeliver(string $id): void
-    {
-        $this->collection->updateOne(['_id' => $id], [
-            '$set' => [
-                'delivery_id' => null,
-                'redeliver_at' => null,
-            ],
-        ]);
-    }
 }
