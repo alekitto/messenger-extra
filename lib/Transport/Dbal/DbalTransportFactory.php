@@ -93,6 +93,9 @@ class DbalTransportFactory implements TransportFactoryInterface
             $options = array_merge($opts, $options, ['table_name' => $tableName]);
 
             $connection = $this->managerRegistry->getConnection($connectionName);
+            assert($connection instanceof Connection);
+
+            $connection = DriverManager::getConnection($connection->getParams(), $connection->getConfiguration(), $connection->getEventManager());
         } else {
             $path = $params['path'];
             if (strpos($path, '/') === 0) {

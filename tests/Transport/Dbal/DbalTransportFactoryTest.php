@@ -2,6 +2,8 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
 
+use Doctrine\Common\EventManager;
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\Persistence\ManagerRegistry;
@@ -53,11 +55,15 @@ class DbalTransportFactoryTest extends TestCase
         self::assertFalse($this->transportFactory->supports('invalid-dsn', []));
     }
 
-    public function testCreateTransportShouldUseExistentConnection(): void
+    public function testCreateTransportShouldNotUseExistentConnection(): void
     {
         $this->managerRegistry->getConnection('connection_name')
             ->shouldBeCalled()
-            ->willReturn($this->prophesize(Connection::class));
+            ->willReturn($connection = $this->prophesize(Connection::class));
+        $connection->getParams()->willReturn(['url' => 'sqlite:///'.__DIR__.'/queue.db']);
+        $connection->getConfiguration()->willReturn(new Configuration());
+        $connection->getEventManager()->willReturn(new EventManager());
+
         $transport = $this->transportFactory->createTransport('doctrine://connection_name', [], $this->serializer->reveal());
 
         self::assertInstanceOf(DbalTransport::class, $transport);
