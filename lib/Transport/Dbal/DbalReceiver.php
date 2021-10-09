@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
-use PDO;
 use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
@@ -29,7 +27,6 @@ use function assert;
 use function bin2hex;
 use function is_resource;
 use function json_decode;
-use function method_exists;
 use function microtime;
 use function Safe\hex2bin;
 use function Safe\preg_match;
@@ -122,20 +119,19 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      */
     public function all(?int $limit = null): iterable
     {
-        $qb = $this->connection->createQueryBuilder()
-            ->select('*')
+        $result = $this->connection->createQueryBuilder()
+            ->select('body', 'headers', 'id')
             ->from($this->tableName)
-            ->setMaxResults($limit);
+            ->setMaxResults($limit)
+            ->executeQuery();
 
-        if (method_exists($qb, 'executeQuery')) {
-            $statement = $qb->executeQuery();
-        } else {
-            $statement = $qb->execute();
-            assert($statement instanceof ResultStatement);
-        }
+        while (true) {
+            /** @phpstan-var array{body: string, headers: string, id: string|resource}|false $row */
+            $row = $result->fetchAssociative();
+            if ($row === false) {
+                break;
+            }
 
-        $method = method_exists($statement, 'fetchAssociative') ? 'fetchAssociative' : 'fetch';
-        while (($row = $statement->{$method}())) {
             yield $this->hydrate($row);
         }
     }
@@ -151,28 +147,18 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             $id = hex2bin($id);
         }
 
-        $queryBuilder = $this->connection->createQueryBuilder()
-            ->select('*')
+        $result = $this->connection->createQueryBuilder()
+            ->select('body', 'headers', 'id')
             ->from($this->tableName)
             ->andWhere('id = :identifier')
             ->setParameter('identifier', $id, ParameterType::BINARY)
-            ->setMaxResults(1);
+            ->setMaxResults(1)
+            ->executeQuery();
 
-        if (method_exists($queryBuilder, 'executeQuery')) {
-            $statement = $queryBuilder->executeQuery();
-            $deliveredMessage = $statement->fetchAssociative();
-        } else {
-            $statement = $queryBuilder->execute();
-            assert($statement instanceof ResultStatement);
+        /** @phpstan-var array{body: string, headers: string, id: string|resource}|false $deliveredMessage */
+        $deliveredMessage = $result->fetchAssociative();
 
-            if (method_exists($statement, 'fetchAssociative')) {
-                $deliveredMessage = $statement->fetchAssociative();
-            } else {
-                $deliveredMessage = $statement->fetch(PDO::FETCH_ASSOC);
-            }
-        }
-
-        return $deliveredMessage ? $this->hydrate($deliveredMessage) : null;
+        return $deliveredMessage !== false ? $this->hydrate($deliveredMessage) : null;
     }
 
     public function getMessageCount(): int
@@ -182,17 +168,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->from($this->tableName)
             ->setMaxResults(1);
 
-        if (method_exists($queryBuilder, 'executeQuery')) {
-            return (int) $queryBuilder->executeQuery()->fetchOne();
-        }
-
-        $statement = $queryBuilder->execute();
-        assert($statement instanceof ResultStatement);
-        if (method_exists($statement, 'fetchOne')) {
-            return (int) $statement->fetchOne();
-        }
-
-        return (int) $statement->fetchColumn();
+        return (int) $queryBuilder->executeQuery()->fetchOne();
     }
 
     /**
@@ -219,21 +195,10 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     private function fetchMessage(): ?Envelope
     {
         $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
-        $statement = $this->select
-            ->setParameter('delayedUntil', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE);
-
-        if (method_exists($statement, 'executeQuery')) {
-            $result = $statement->executeQuery()->fetchAssociative();
-        } else {
-            $statement = $statement->execute();
-
-            assert($statement instanceof ResultStatement);
-            if (method_exists($statement, 'fetchAssociative')) {
-                $result = $statement->fetchAssociative();
-            } else {
-                $result = $statement->fetch(PDO::FETCH_ASSOC);
-            }
-        }
+        $result = $this->select
+            ->setParameter('delayedUntil', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->executeQuery()
+            ->fetchAssociative();
 
         if (! $result) {
             return null;
@@ -249,27 +214,16 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             ->setParameter('redeliverAfter', new DateTimeImmutable('+5 minutes'), Types::DATETIMETZ_IMMUTABLE)
             ->setParameter('messageId', $id, ParameterType::BINARY);
 
-        $update = method_exists($this->update, 'executeStatement') ? $this->update->executeStatement() : $this->update->execute();
-        if ($update) {
-            $statement = $this->connection->createQueryBuilder()
-                ->select('*')
+        if ($this->update->executeStatement()) {
+            /** @phpstan-var array{body: string, headers: string, id: string|resource, time_to_live: string}|false $deliveredMessage */
+            $deliveredMessage = $this->connection->createQueryBuilder()
+                ->select('body', 'headers', 'id', 'time_to_live')
                 ->from($this->tableName)
                 ->andWhere('delivery_id = :deliveryId')
                 ->setParameter('deliveryId', $deliveryId, ParameterType::BINARY)
-                ->setMaxResults(1);
-
-            if (method_exists($statement, 'executeQuery')) {
-                $deliveredMessage = $statement->executeQuery()->fetchAssociative();
-            } else {
-                $statement = $statement->execute();
-
-                assert($statement instanceof ResultStatement);
-                if (method_exists($statement, 'fetchAssociative')) {
-                    $deliveredMessage = $statement->fetchAssociative();
-                } else {
-                    $deliveredMessage = $statement->fetch(PDO::FETCH_ASSOC);
-                }
-            }
+                ->setMaxResults(1)
+                ->executeQuery()
+                ->fetchAssociative();
 
             // the message has been removed by a 3rd party, such as truncate operation.
             if ($deliveredMessage === false) {
@@ -298,19 +252,14 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             return;
         }
 
-        $qb = $this->connection->createQueryBuilder()
+        $this->connection->createQueryBuilder()
             ->update($this->tableName)
             ->set('delivery_id', ':deliveryId')
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
             ->setParameter('now', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
-            ->setParameter('deliveryId', null);
-
-        if (method_exists($qb, 'executeStatement')) {
-            $qb->executeStatement();
-        } else {
-            $qb->execute();
-        }
+            ->setParameter('deliveryId', null)
+            ->executeStatement();
 
         $this->redeliverMessagesLastExecutedAt = microtime(true);
     }
@@ -326,17 +275,12 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             return;
         }
 
-        $qb = $this->connection->createQueryBuilder()
+        $this->connection->createQueryBuilder()
             ->delete($this->tableName)
             ->andWhere('(time_to_live IS NOT NULL) AND (time_to_live < :now)')
             ->andWhere('delivery_id IS NULL')
-            ->setParameter('now', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE);
-
-        if (method_exists($qb, 'executeStatement')) {
-            $qb->executeStatement();
-        } else {
-            $qb->execute();
-        }
+            ->setParameter('now', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
+            ->executeStatement();
 
         $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }

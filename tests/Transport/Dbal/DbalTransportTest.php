@@ -82,11 +82,7 @@ class DbalTransportTest extends TestCase
 
         $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
         $this->connection->createQueryBuilder()->willReturn(new QueryBuilder($this->connection->reveal()));
-        if (method_exists(Connection::class, 'createExpressionBuilder')) {
-            $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
-        } else {
-            $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
-        }
+        $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
 
         $this->connection
             ->executeQuery('SELECT id FROM messenger WHERE (uniq_key = :uniq_key) AND (delivery_id IS NULL)', ['uniq_key' => 'uniq'], [])
@@ -136,11 +132,7 @@ class DbalTransportTest extends TestCase
 
         $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
         $this->connection->createQueryBuilder()->willReturn(new QueryBuilder($this->connection->reveal()));
-        if (method_exists(Connection::class, 'createExpressionBuilder')) {
-            $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
-        } else {
-            $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
-        }
+        $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
 
         $this->connection
             ->executeQuery('SELECT id FROM messenger WHERE (uniq_key = :uniq_key) AND (delivery_id IS NULL)', ['uniq_key' => 'uniq'], [])
@@ -155,13 +147,8 @@ class DbalTransportTest extends TestCase
     public function testCreateTable(): void
     {
         $this->connection->connect()->willReturn();
-        if (method_exists(Connection::class, 'createSchemaManager')) {
-            $this->connection->createSchemaManager()
-                ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
-        } else {
-            $this->connection->getSchemaManager()
-                ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
-        }
+        $this->connection->createSchemaManager()
+            ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
 
         $schemaManager->createSchema()->willReturn(new Schema());
         $schemaManager->createTable(Argument::type(Table::class))->shouldBeCalled();
@@ -179,7 +166,7 @@ class DbalTransportTest extends TestCase
 
         $id = '0124dfeea3f56c';
         $this->connection
-            ->executeQuery('SELECT * FROM messenger WHERE id = :identifier LIMIT 1', ['identifier' => hex2bin($id)], ['identifier' => ParameterType::BINARY])
+            ->executeQuery('SELECT body, headers, id FROM messenger WHERE id = :identifier LIMIT 1', ['identifier' => hex2bin($id)], ['identifier' => ParameterType::BINARY])
             ->willReturn($this->createResultObject([
                 ['id' => hex2bin($id), 'body' => '{}', 'headers' => '{"type":"stdClass"}'],
             ]));
@@ -249,7 +236,7 @@ class DbalTransportTest extends TestCase
             ->shouldBeCalled();
 
         $this->connection->executeQuery(
-            'SELECT * FROM messenger WHERE delivery_id = :deliveryId LIMIT 1',
+            'SELECT body, headers, id, time_to_live FROM messenger WHERE delivery_id = :deliveryId LIMIT 1',
             Argument::that(function ($arg) use (&$deliveryId): bool {
                 self::assertEquals(['deliveryId' => $deliveryId], $arg);
 
@@ -274,10 +261,6 @@ class DbalTransportTest extends TestCase
 
     private function createResultObject(array $data): object
     {
-        if (class_exists(Result::class)) {
-            return new Result(new DummyResult($data), $this->connection->reveal());
-        }
-
-        return new \Doctrine\DBAL\ForwardCompatibility\Result(new DummyStatement($data));
+        return new Result(new DummyResult($data), $this->connection->reveal());
     }
 }

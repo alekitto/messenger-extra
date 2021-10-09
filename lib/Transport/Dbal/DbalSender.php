@@ -6,7 +6,6 @@ namespace Kcs\MessengerExtra\Transport\Dbal;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Types;
 use Kcs\MessengerExtra\Message\DelayedMessageInterface;
@@ -27,7 +26,6 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use function assert;
 use function bin2hex;
 use function mb_strlen;
-use function method_exists;
 use function microtime;
 use function Safe\sprintf;
 use function sha1;
@@ -101,31 +99,15 @@ class DbalSender implements SenderInterface
                 $uniqKey = sha1($uniqKey);
             }
 
-            if (method_exists($this->connection, 'createExpressionBuilder')) {
-                $expr = $this->connection->createExpressionBuilder();
-            } else {
-                $expr = $this->connection->getExpressionBuilder();
-            }
-
-            $queryBuilder = $this->connection->createQueryBuilder()
+            $expr = $this->connection->createExpressionBuilder();
+            $result = $this->connection->createQueryBuilder()
                 ->select('id')
                 ->from($this->tableName)
                 ->where($expr->eq('uniq_key', ':uniq_key'))
                 ->andWhere($expr->isNull('delivery_id'))
-                ->setParameter('uniq_key', $uniqKey);
-
-            if (method_exists($queryBuilder, 'executeQuery')) {
-                $result = $queryBuilder->executeQuery()->fetchOne();
-            } else {
-                $statement = $queryBuilder->execute();
-
-                assert($statement instanceof ResultStatement);
-                if (method_exists($statement, 'fetchOne')) {
-                    $result = $statement->fetchOne();
-                } else {
-                    $result = $statement->fetchColumn();
-                }
-            }
+                ->setParameter('uniq_key', $uniqKey)
+                ->executeQuery()
+                ->fetchOne();
 
             if ($result !== false) {
                 return $envelope;

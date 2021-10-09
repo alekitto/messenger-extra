@@ -16,9 +16,6 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\SetupableTransportInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
-use function assert;
-use function method_exists;
-
 /**
  * Serializer Messenger Transport to produce and consume messages from/to DBAL connection.
  */
@@ -66,12 +63,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     public function createTable(): void
     {
         $this->connection->connect();
-        if (method_exists($this->connection, 'createSchemaManager')) {
-            $schemaManager = $this->connection->createSchemaManager();
-        } else {
-            $schemaManager = $this->connection->getSchemaManager();
-            assert($schemaManager !== null);
-        }
+        $schemaManager = $this->connection->createSchemaManager();
 
         $schema = $schemaManager->createSchema();
         if ($schema->hasTable($this->options['table_name'])) {

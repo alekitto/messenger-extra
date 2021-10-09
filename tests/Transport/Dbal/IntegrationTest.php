@@ -88,12 +88,7 @@ class IntegrationTest extends TestCase
         }
 
         if (isset($connection)) {
-            if (method_exists($connection, 'createSchemaManager')) {
-                $schemaManager = $connection->createSchemaManager();
-            } else {
-                $schemaManager = $connection->getSchemaManager();
-            }
-
+            $schemaManager = $connection->createSchemaManager();
             $schemaManager->dropAndCreateDatabase('messenger');
         }
 
