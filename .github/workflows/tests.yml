@@ -68,7 +68,7 @@ jobs:
             - run: composer require --dev --no-update symfony/messenger=^${{ matrix.versions[1] }}
             - run: composer remove --dev --no-update kcs/serializer
               if: matrix.versions[3]
-            - run: composer install --ignore-platform-reqs
+            - run: composer install
             - run: vendor/bin/phpunit
               env:
                   DB: ${{ matrix.versions[2] }}
