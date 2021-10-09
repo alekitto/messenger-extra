@@ -99,7 +99,13 @@ class DbalTransportFactoryTest extends TestCase
         $transport->createTable();
 
         $connection = DriverManager::getConnection(['url' => 'sqlite:///'.__DIR__.'/queue.db']);
-        $schema = $connection->getSchemaManager()->createSchema();
+        if (method_exists($connection, 'createSchemaManager')) {
+            $schemaManager = $connection->createSchemaManager();
+        } else {
+            $schemaManager = $connection->getSchemaManager();
+        }
+
+        $schema = $schemaManager->createSchema();
         self::assertTrue($schema->hasTable('table_name'));
 
         $connection->close();

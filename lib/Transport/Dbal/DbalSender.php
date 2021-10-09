@@ -101,20 +101,30 @@ class DbalSender implements SenderInterface
                 $uniqKey = sha1($uniqKey);
             }
 
-            $expr = $this->connection->getExpressionBuilder();
-            $statement = $this->connection->createQueryBuilder()
+            if (method_exists($this->connection, 'createExpressionBuilder')) {
+                $expr = $this->connection->createExpressionBuilder();
+            } else {
+                $expr = $this->connection->getExpressionBuilder();
+            }
+
+            $queryBuilder = $this->connection->createQueryBuilder()
                 ->select('id')
                 ->from($this->tableName)
                 ->where($expr->eq('uniq_key', ':uniq_key'))
                 ->andWhere($expr->isNull('delivery_id'))
-                ->setParameter('uniq_key', $uniqKey)
-                ->execute();
+                ->setParameter('uniq_key', $uniqKey);
 
-            assert($statement instanceof ResultStatement);
-            if (method_exists($statement, 'fetchOne')) {
-                $result = $statement->fetchOne();
+            if (method_exists($queryBuilder, 'executeQuery')) {
+                $result = $queryBuilder->executeQuery()->fetchOne();
             } else {
-                $result = $statement->fetchColumn();
+                $statement = $queryBuilder->execute();
+
+                assert($statement instanceof ResultStatement);
+                if (method_exists($statement, 'fetchOne')) {
+                    $result = $statement->fetchOne();
+                } else {
+                    $result = $statement->fetchColumn();
+                }
             }
 
             if ($result !== false) {

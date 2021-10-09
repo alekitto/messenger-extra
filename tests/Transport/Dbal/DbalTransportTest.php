@@ -2,12 +2,12 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
 
-use Doctrine\DBAL\Cache\ArrayStatement;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
@@ -25,6 +25,8 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Ramsey\Uuid\Codec\OrderedTimeCodec;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
+use Refugis\DoctrineExtra\DBAL\DummyResult;
+use Refugis\DoctrineExtra\DBAL\DummyStatement;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
@@ -80,11 +82,15 @@ class DbalTransportTest extends TestCase
 
         $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
         $this->connection->createQueryBuilder()->willReturn(new QueryBuilder($this->connection->reveal()));
-        $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        if (method_exists(Connection::class, 'createExpressionBuilder')) {
+            $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        } else {
+            $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        }
 
         $this->connection
             ->executeQuery('SELECT id FROM messenger WHERE (uniq_key = :uniq_key) AND (delivery_id IS NULL)', ['uniq_key' => 'uniq'], [])
-            ->willReturn(new ArrayStatement([]));
+            ->willReturn($this->createResultObject([]));
 
         $this->connection->insert('messenger', Argument::allOf(
             Argument::withEntry('id', Argument::type('string')),
@@ -130,11 +136,15 @@ class DbalTransportTest extends TestCase
 
         $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
         $this->connection->createQueryBuilder()->willReturn(new QueryBuilder($this->connection->reveal()));
-        $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        if (method_exists(Connection::class, 'createExpressionBuilder')) {
+            $this->connection->createExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        } else {
+            $this->connection->getExpressionBuilder()->willReturn(new ExpressionBuilder($this->connection->reveal()));
+        }
 
         $this->connection
             ->executeQuery('SELECT id FROM messenger WHERE (uniq_key = :uniq_key) AND (delivery_id IS NULL)', ['uniq_key' => 'uniq'], [])
-            ->willReturn(new ArrayStatement([
+            ->willReturn($this->createResultObject([
                 ['id' => Uuid::uuid4()->getBytes()],
             ]));
 
@@ -145,8 +155,14 @@ class DbalTransportTest extends TestCase
     public function testCreateTable(): void
     {
         $this->connection->connect()->willReturn();
-        $this->connection->getSchemaManager()
-            ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
+        if (method_exists(Connection::class, 'createSchemaManager')) {
+            $this->connection->createSchemaManager()
+                ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
+        } else {
+            $this->connection->getSchemaManager()
+                ->willReturn($schemaManager = $this->prophesize(AbstractSchemaManager::class));
+        }
+
         $schemaManager->createSchema()->willReturn(new Schema());
         $schemaManager->createTable(Argument::type(Table::class))->shouldBeCalled();
 
@@ -163,8 +179,8 @@ class DbalTransportTest extends TestCase
 
         $id = '0124dfeea3f56c';
         $this->connection
-            ->executeQuery('SELECT * FROM messenger WHERE id = :identifier LIMIT 1', [':identifier' => hex2bin($id)], [':identifier' => ParameterType::BINARY])
-            ->willReturn(new ArrayStatement([
+            ->executeQuery('SELECT * FROM messenger WHERE id = :identifier LIMIT 1', ['identifier' => hex2bin($id)], ['identifier' => ParameterType::BINARY])
+            ->willReturn($this->createResultObject([
                 ['id' => hex2bin($id), 'body' => '{}', 'headers' => '{"type":"stdClass"}'],
             ]));
 
@@ -188,27 +204,27 @@ class DbalTransportTest extends TestCase
         $this->connection->$method(
             'DELETE FROM messenger WHERE ((time_to_live IS NOT NULL) AND (time_to_live < :now)) AND (delivery_id IS NULL)',
             Argument::any(),
-            [':now' => Types::DATETIMETZ_IMMUTABLE]
-        )->shouldBeCalled();
+            ['now' => Types::DATETIMETZ_IMMUTABLE]
+        )->shouldBeCalled()->willReturn(0);
 
         // Re-deliver old messages
         $this->connection->$method(
             'UPDATE messenger SET delivery_id = :deliveryId WHERE (redeliver_after < :now) AND (delivery_id IS NOT NULL)',
             Argument::any(),
-            [':now' => Types::DATETIMETZ_IMMUTABLE]
-        )->shouldBeCalled();
+            ['now' => Types::DATETIMETZ_IMMUTABLE]
+        )->shouldBeCalled()->willReturn(0);
 
-        $this->connection->getDatabasePlatform()->willReturn($platform = $this->prophesize(AbstractPlatform::class));
+        $this->connection->getDatabasePlatform()->willReturn($this->prophesize(AbstractPlatform::class));
 
         $codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
         $messageId = $codec->encodeBinary(Uuid::uuid1());
         $this->connection->executeQuery(
             'SELECT id FROM messenger WHERE (delayed_until IS NULL OR delayed_until <= :delayedUntil) AND (delivery_id IS NULL) ORDER BY priority asc, published_at asc, id asc LIMIT 1',
             Argument::any(),
-            [':delayedUntil' => Types::DATETIMETZ_IMMUTABLE]
+            ['delayedUntil' => Types::DATETIMETZ_IMMUTABLE]
         )
             ->shouldBeCalled()
-            ->willReturn(new ArrayStatement([
+            ->willReturn($this->createResultObject([
                 ['id' => $messageId],
             ]));
 
@@ -216,17 +232,17 @@ class DbalTransportTest extends TestCase
         $this->connection->$method(
             'UPDATE messenger SET delivery_id = :deliveryId, redeliver_after = :redeliverAfter WHERE (id = :messageId) AND (delivery_id IS NULL)',
             Argument::that(function ($arg) use (&$deliveryId): bool {
-                self::assertArrayHasKey(':messageId', $arg);
-                self::assertArrayHasKey(':deliveryId', $arg);
+                self::assertArrayHasKey('messageId', $arg);
+                self::assertArrayHasKey('deliveryId', $arg);
 
-                $deliveryId = $arg[':deliveryId'];
+                $deliveryId = $arg['deliveryId'];
 
                 return true;
             }),
             [
-                ':deliveryId' => ParameterType::BINARY,
-                ':redeliverAfter' => Types::DATETIMETZ_IMMUTABLE,
-                ':messageId' => ParameterType::BINARY,
+                'deliveryId' => ParameterType::BINARY,
+                'redeliverAfter' => Types::DATETIMETZ_IMMUTABLE,
+                'messageId' => ParameterType::BINARY,
             ]
         )
             ->willReturn(1)
@@ -235,13 +251,13 @@ class DbalTransportTest extends TestCase
         $this->connection->executeQuery(
             'SELECT * FROM messenger WHERE delivery_id = :deliveryId LIMIT 1',
             Argument::that(function ($arg) use (&$deliveryId): bool {
-                self::assertEquals([':deliveryId' => $deliveryId], $arg);
+                self::assertEquals(['deliveryId' => $deliveryId], $arg);
 
                 return true;
             }),
-            [':deliveryId' => ParameterType::BINARY]
+            ['deliveryId' => ParameterType::BINARY]
         )
-            ->willReturn(new ArrayStatement([
+            ->willReturn($this->createResultObject([
                 [
                     'id' => $messageId,
                     'published_at' => new \DateTimeImmutable(),
@@ -254,5 +270,14 @@ class DbalTransportTest extends TestCase
         $this->connection->delete(Argument::cetera())->willReturn();
 
         \iterator_to_array($this->transport->get());
+    }
+
+    private function createResultObject(array $data): object
+    {
+        if (class_exists(Result::class)) {
+            return new Result(new DummyResult($data), $this->connection->reveal());
+        }
+
+        return new \Doctrine\DBAL\ForwardCompatibility\Result(new DummyStatement($data));
     }
 }
