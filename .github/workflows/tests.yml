@@ -21,10 +21,15 @@ jobs:
                     - [8.0, 5.0, mysql,  false, '', '', 'mongodb://localhost:27017/']
                     - [8.0, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.0, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
                     - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
                     - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.1, 6.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.1, 6.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
 
         name: Symfony ${{ matrix.versions[1] }} on PHP ${{ matrix.versions[0] }} with ${{ matrix.versions[2] }} database
         services:
