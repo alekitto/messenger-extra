@@ -33,6 +33,7 @@ use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Worker;
 use Symfony\Component\Serializer as SerializerComponent;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Throwable;
 
 /**
  * @group integration
@@ -124,12 +125,12 @@ class IntegrationTest extends TestCase
         $retryStrategy = new class implements RetryStrategyInterface {
             private int $retry = 0;
 
-            public function isRetryable(Envelope $message): bool
+            public function isRetryable(Envelope $message, ?Throwable $throwable = null): bool
             {
                 return $this->retry++ < 2;
             }
 
-            public function getWaitingTime(Envelope $message): int
+            public function getWaitingTime(Envelope $message, ?Throwable $throwable = null): int
             {
                 return 1;
             }
