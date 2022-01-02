@@ -15,6 +15,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface as M
 
 use function assert;
 use function get_class;
+use function is_subclass_of;
 use function iterator_to_array;
 use function serialize;
 use function unserialize;
