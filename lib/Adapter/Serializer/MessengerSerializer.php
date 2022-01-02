@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use Kcs\Serializer\SerializerInterface;
 use Kcs\Serializer\Type\Type;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 use Symfony\Component\Messenger\Stamp\SerializerStamp;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface as MessengerSerializerInterface;
 
@@ -92,7 +93,16 @@ class MessengerSerializer implements MessengerSerializerInterface
         }
 
         $headers = ['type' => get_class($envelope->getMessage())];
-        $configurations = $envelope->all();
+        $configurations = [];
+
+        foreach ($envelope->all() as $stampClass => $stamps) {
+            if (is_subclass_of($stampClass, NonSendableStampInterface::class, true)) {
+                continue;
+            }
+
+            $configurations[$stampClass] = $stamps;
+        }
+
         if (! empty($configurations)) {
             $headers['X-Message-Envelope-Items'] = serialize($configurations);
         }
