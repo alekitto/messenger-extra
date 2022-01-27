@@ -92,7 +92,8 @@ class MongoTransportTest extends TestCase
             Argument::withEntry('priority', Argument::allOf(Argument::type('int'), 0)),
             Argument::withEntry('time_to_live', Argument::type('int')),
             Argument::withEntry('delayed_until', Argument::type('int')),
-            Argument::withEntry('uniq_key', 'uniq')
+            Argument::withEntry('uniq_key', 'uniq'),
+            Argument::withEntry('queue_name', '')
         ))
             ->shouldBeCalled()
             ->willReturn($result = $this->prophesize(InsertOneResult::class))

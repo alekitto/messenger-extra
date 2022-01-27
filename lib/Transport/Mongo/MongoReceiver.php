@@ -32,10 +32,13 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     private float $removeExpiredMessagesLastExecutedAt;
     private int $retryingSafetyCounter = 0;
 
-    public function __construct(Collection $collection, ?SerializerInterface $serializer = null)
+    private $queueName;
+
+    public function __construct(Collection $collection, SerializerInterface $serializer = null, string $queueName = '')
     {
         $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
+        $this->queueName = $queueName;
     }
 
     /**
@@ -152,6 +155,9 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
                             ['redeliver_at' => ['$lte' => $now]],
                         ],
                     ],
+                    [
+                        'queue_name' => $this->queueName
+                    ]
                 ],
             ],
             [
