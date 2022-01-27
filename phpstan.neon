@@ -1,0 +1,8 @@
+includes:
+    - vendor/solido/php-coding-standards/phpstan.neon
+parameters:
+    scanFiles:
+        - stubs/DoctrineConnectionRegistryV2.stub
+        - stubs/DoctrineManagerRegistryV2.stub
+        - stubs/DoctrineObjectManagerV2.stub
+    treatPhpDocTypesAsCertain: false

@@ -1,0 +1,77 @@
+name: Tests
+on:
+    push:
+    pull_request_target:
+        types: [opened, synchronize]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                versions:
+                    # PHP, SF,   DB,     Ser,   MongoDB
+                    - [7.4, 4.4, sqlite, false, '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 4.4, sqlite, false, '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 5.0, sqlite, false, '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 5.0, mysql,  false, '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
+                    - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
+                    - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.1, 6.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.1, 6.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+
+        name: Symfony ${{ matrix.versions[1] }} on PHP ${{ matrix.versions[0] }} with ${{ matrix.versions[2] }} database
+        services:
+            mysql:
+                image: mysql:5.7
+                env:
+                    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+                    MYSQL_DATABASE: messenger
+                ports:
+                    - 3306:3306
+
+            mongo:
+                image: mongo
+                env:
+                    MONGO_INITDB_ROOT_USERNAME: ${{ matrix.versions[4] }}
+                    MONGO_INITDB_ROOT_PASSWORD: ${{ matrix.versions[5] }}
+                options: >-
+                    --health-cmd mongo
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 27017:27017
+
+        steps:
+            - uses: actions/checkout@v2
+            - name: Setup PHP with pecl extension
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.versions[0] }}
+                  extensions: mongodb, :opcache
+            - name: Wait for mongo to be ready
+              uses: docker://toschneck/wait-for-it
+              with:
+                args: -q -t 60 mongo:27017
+            - uses: docker://mongo
+              if: matrix.versions[4]
+              with:
+                args: >
+                  mongo --host mongo:27017 -u ${{ matrix.versions[4] }} -p ${{ matrix.versions[5] }} admin --eval "db = db.getSiblingDB('default'); db.createUser({ user: '${{ matrix.versions[4] }}', pwd: '${{ matrix.versions[5] }}', roles: [ { role: 'readWrite', db: 'default' }], passwordDigestor: 'server' })
+            - run: composer require --dev --no-update symfony/messenger=^${{ matrix.versions[1] }}
+            - run: composer remove --dev --no-update kcs/serializer
+              if: matrix.versions[3]
+            - run: composer install
+            - run: vendor/bin/phpunit
+              env:
+                  DB: ${{ matrix.versions[2] }}
+                  MONGODB_URI: ${{ matrix.versions[6] }}

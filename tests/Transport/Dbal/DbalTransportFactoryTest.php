@@ -2,32 +2,33 @@
 
 namespace Kcs\MessengerExtra\Tests\Transport\Dbal;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Common\EventManager;
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\Persistence\ManagerRegistry;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransport;
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 class DbalTransportFactoryTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var ManagerRegistry|ObjectProphecy
      */
-    private $managerRegistry;
+    private ObjectProphecy $managerRegistry;
 
     /**
      * @var SerializerInterface|ObjectProphecy
      */
-    private $serializer;
-
-    /**
-     * @var DbalTransportFactory
-     */
-    private $transportFactory;
+    private ObjectProphecy $serializer;
+    private DbalTransportFactory $transportFactory;
 
     protected function setUp(): void
     {
@@ -54,11 +55,15 @@ class DbalTransportFactoryTest extends TestCase
         self::assertFalse($this->transportFactory->supports('invalid-dsn', []));
     }
 
-    public function testCreateTransportShouldUseExistentConnection(): void
+    public function testCreateTransportShouldNotUseExistentConnection(): void
     {
         $this->managerRegistry->getConnection('connection_name')
             ->shouldBeCalled()
-            ->willReturn($this->prophesize(Connection::class));
+            ->willReturn($connection = $this->prophesize(Connection::class));
+        $connection->getParams()->willReturn(['url' => 'sqlite:///'.__DIR__.'/queue.db']);
+        $connection->getConfiguration()->willReturn(new Configuration());
+        $connection->getEventManager()->willReturn(new EventManager());
+
         $transport = $this->transportFactory->createTransport('doctrine://connection_name', [], $this->serializer->reveal());
 
         self::assertInstanceOf(DbalTransport::class, $transport);
@@ -94,7 +99,9 @@ class DbalTransportFactoryTest extends TestCase
         $transport->createTable();
 
         $connection = DriverManager::getConnection(['url' => 'sqlite:///'.__DIR__.'/queue.db']);
-        $schema = $connection->getSchemaManager()->createSchema();
+        $schemaManager = $connection->createSchemaManager();
+
+        $schema = $schemaManager->createSchema();
         self::assertTrue($schema->hasTable('table_name'));
 
         $connection->close();

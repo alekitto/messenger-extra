@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
@@ -13,40 +15,25 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
  * Serializer Messenger Transport to produce and consume messages from/to Mongo database.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface, SetupableTransportInterface
 {
-    /**
-     * @var Collection
-     */
-    private $collection;
-
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
-
-    /**
-     * @var MongoReceiver
-     */
-    private $receiver;
-
-    /**
-     * @var MongoSender
-     */
-    private $sender;
+    private Collection $collection;
+    private ?SerializerInterface $serializer;
+    private MongoReceiver $receiver;
+    private MongoSender $sender;
 
     private $queueName;
-
     private $database;
 
-    public function __construct(Client $client, SerializerInterface $serializer = null, array $options = [])
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function __construct(Client $client, ?SerializerInterface $serializer = null, array $options = [])
     {
-        $this->database = $client->{$options['database_name']};
-        $this->collection = $this->database->{$options['collection_name']};
+        $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
         $this->serializer = $serializer;
+        $this->database = $client->{$options['database_name']};
         $this->queueName = array_key_exists('queue_name', $options) ? $options['queue_name'] : '';
     }
 
@@ -55,52 +42,42 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      */
     public function get(): iterable
     {
-        return $this->getReceiver()->get();
+        return ($this->receiver ?? $this->getReceiver())->get();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
-        $this->getReceiver()->ack($envelope);
+        ($this->receiver ?? $this->getReceiver())->ack($envelope);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
-        $this->getReceiver()->reject($envelope);
+        ($this->receiver ?? $this->getReceiver())->reject($envelope);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function all(int $limit = null): iterable
+    public function all(?int $limit = null): iterable
     {
-        yield from $this->getReceiver()->all($limit);
+        yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $id
      */
     public function find($id): ?Envelope
     {
-        return $this->getReceiver()->find($id);
+        return ($this->receiver ?? $this->getReceiver())->find($id);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getMessageCount(): int
     {
-        return $this->getReceiver()->getMessageCount();
+        return ($this->receiver ?? $this->getReceiver())->getMessageCount();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function send(Envelope $envelope): Envelope
     {
         return ($this->sender ?? $this->getSender())->send($envelope);

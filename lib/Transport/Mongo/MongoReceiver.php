@@ -1,39 +1,36 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Kcs\MessengerExtra\Transport\Mongo;
 
+use Doctrine\DBAL\Exception\RetryableException;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Collection;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\TransportException;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Throwable;
+
+use function assert;
+use function microtime;
+use function time;
 
 /**
  * Serializer Messenger receiver to get messages from MongoDB connection.
- *
- * @author Alessandro Chitolina <alekitto@gmail.com>
  */
 class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
-
-    /**
-     * @var Collection
-     */
-    private $collection;
-
-    /**
-     * @var float
-     */
-    private $removeExpiredMessagesLastExecutedAt;
+    private SerializerInterface $serializer;
+    private Collection $collection;
+    private float $removeExpiredMessagesLastExecutedAt;
+    private int $retryingSafetyCounter = 0;
 
     private $queueName;
 
@@ -52,35 +49,31 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         $this->removeExpiredMessages();
 
         $envelope = $this->fetchMessage();
-        if (null === $envelope) {
+        if ($envelope === null) {
             return;
         }
 
         try {
             yield $envelope;
 
-            $this->ack($envelope);
-        } catch (\Throwable $e) {
-            $this->redeliver($envelope->last(TransportMessageIdStamp::class)->getId());
-
-            throw $e;
+            $this->retryingSafetyCounter = 0; // reset counter
+        } catch (RetryableException $e) {
+            if (++$this->retryingSafetyCounter > 3) {
+                throw new TransportException($e->getMessage(), 0, $e);
+            }
+        } catch (Throwable $e) {
+            throw new TransportException($e->getMessage(), 0, $e);
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function ack(Envelope $envelope): void
     {
-        /** @var TransportMessageIdStamp $messageIdStamp */
         $messageIdStamp = $envelope->last(TransportMessageIdStamp::class);
+        assert($messageIdStamp instanceof TransportMessageIdStamp);
 
         $this->collection->deleteOne(['_id' => $messageIdStamp->getId()]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reject(Envelope $envelope): void
     {
         $this->ack($envelope);
@@ -89,13 +82,14 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     /**
      * {@inheritdoc}
      */
-    public function all(int $limit = null): iterable
+    public function all(?int $limit = null): iterable
     {
         $options = [];
-        if (null !== $options) {
+        if ($options !== null) {
             $options['limit'] = $limit;
         }
 
+        /** @phpstan-var array{_id:string, body:string, headers:string, id:resource|string, time_to_live: ?int} $deliveredMessage */
         foreach ($this->collection->find([], $options) as $deliveredMessage) {
             yield $this->hydrate((array) $deliveredMessage);
         }
@@ -103,11 +97,14 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $id
      */
     public function find($id): ?Envelope
     {
         $id = $id instanceof ObjectId ? $id : new ObjectId($id);
 
+        /** @phpstan-var array{_id: string, body: string, headers: string, id: (resource|string), time_to_live: ?int}|null $deliveredMessage */
         $deliveredMessage = $this->collection->findOne(['_id' => $id]);
         if (! $deliveredMessage) {
             return null;
@@ -116,14 +113,15 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
         return $this->hydrate((array) $deliveredMessage);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getMessageCount(): int
     {
         return $this->collection->countDocuments();
     }
 
+    /**
+     * @param array<string, string> $row
+     * @phpstan-param array{_id:string, body:string, headers:string, id:resource|string, time_to_live: ?int} $row
+     */
     private function hydrate(array $row): Envelope
     {
         $envelope = $this->serializer->decode($row);
@@ -137,7 +135,9 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     private function fetchMessage(): ?Envelope
     {
         $deliveryId = Uuid::uuid4()->toString();
-        $now = \time();
+        $now = time();
+
+        /** @phpstan-var array{_id: string, body: string, headers: string, id: (resource|string), time_to_live: ?int}|null $message */
         $message = $this->collection->findOneAndUpdate(
             [
                 '$and' => [
@@ -172,11 +172,11 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             ]
         );
 
-        if (null === $message) {
+        if ($message === null) {
             return null;
         }
 
-        if (empty($message['time_to_live']) || $message['time_to_live'] > \time()) {
+        if (empty($message['time_to_live']) || $message['time_to_live'] > time()) {
             return $this->hydrate($message);
         }
 
@@ -188,31 +188,16 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     private function removeExpiredMessages(): void
     {
-        if (null === $this->removeExpiredMessagesLastExecutedAt) {
-            $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
-        } elseif ((\microtime(true) - $this->removeExpiredMessagesLastExecutedAt) < 1) {
+        if (! isset($this->removeExpiredMessagesLastExecutedAt)) {
+            $this->removeExpiredMessagesLastExecutedAt = microtime(true);
+        } elseif (microtime(true) - $this->removeExpiredMessagesLastExecutedAt < 1) {
             return;
         }
 
         $this->collection->deleteMany([
-            ['time_to_live' => ['$lt' => \time()]],
+            ['time_to_live' => ['$lt' => time()]],
         ]);
 
-        $this->removeExpiredMessagesLastExecutedAt = \microtime(true);
-    }
-
-    /**
-     * Redeliver a single message.
-     */
-    private function redeliver(string $id): void
-    {
-        $this->collection->updateOne([
-            '_id' => $id,
-        ], [
-            '$set' => [
-                'delivery_id' => null,
-                'redeliver_at' => null,
-            ],
-        ]);
+        $this->removeExpiredMessagesLastExecutedAt = microtime(true);
     }
 }

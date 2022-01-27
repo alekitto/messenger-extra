@@ -1,9 +1,15 @@
 Messenger Extra
 ===============
 
-[![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=master)](https://travis-ci.com/alekitto/messenger-extra)
+[![Tests](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml)
 
 This library provides additional transports (and other things) for the symfony messenger component.
+
+## Install
+
+```
+composer require kcs/messenger-extra
+```
 
 ## Transports
 
@@ -38,12 +44,28 @@ event listener that will create the correct table during a schema update
 
 ### Mongo
 
-Transport using MongoDB PHP client as trasport.
+Transport using MongoDB PHP client as transport.
 
 Supports delayed, prioritized, expiring (TTL) and unique messages.
 
 Use DSN with `mongodb` scheme with `/database/collection` path
 (database `default` and `queue` collection are used if not specified).
+
+#### Mongodb authentication
+
+For authenticated database, with user configured per database, you could
+specify `authSource` option in DSN query string:
+
+```
+mongodb://user:pass@server:port/database?authSource=database
+```
+
+> :warning: NOTE that if a username is passed in DSN the `authSource` connection option
+is already added to the mongo uri when passing to the client library.
+Its value is equal to the database selected (`default` if missing).
+
+> :information_source: For information about the supported options in mongo DSN you can check
+the [official documentation page on PHP.net](https://www.php.net/mongodb-driver-manager.construct#mongodb-driver-manager.construct-urioptions)
 
 ### Null
 
@@ -69,12 +91,13 @@ If another message with the same uniqueness key is present, the message is disca
 
 | Version    | Compatible Symfony Version | Build Status |
 |------------|----------------------------|--------------|
-| 2.x        | ^4.3, ^5.0                 | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=2.x)](https://travis-ci.com/alekitto/messenger-extra) |
-| 1.x        | 4.2.*                      | [![Build Status](https://travis-ci.com/alekitto/messenger-extra.svg?branch=1.x)](https://travis-ci.com/alekitto/messenger-extra) |
+| >= 2.2.0   | ^4.4, ^5.0                 | [![Tests](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml/badge.svg?branch=2.x)](https://github.com/alekitto/messenger-extra/actions/workflows/tests.yml) |
+| 2.0, 2.1   | ^4.3, ^5.0                 | Not available |
+| 1.x        | 4.2.*                      | Not available |
 
 ## Symfony bundle
 
-A symfony bundle is included in the code under /lib: 
+A symfony bundle is included in the code under /lib:
 Use `MessengerExtraBundle` to fully integrate this library into your symfony application.
 Just add this to `bundles.php`:
 
