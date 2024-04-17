@@ -76,7 +76,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function get(): iterable
     {
@@ -115,7 +115,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function all(?int $limit = null): iterable
     {
@@ -137,7 +137,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @param mixed $id
      */

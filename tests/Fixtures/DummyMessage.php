@@ -7,6 +7,7 @@ use Kcs\Serializer\Annotation as Serializer;
 /**
  * @Serializer\AccessType("property")
  */
+#[Serializer\AccessType('property')]
 class DummyMessage implements DummyMessageInterface
 {
     /**
@@ -15,6 +16,8 @@ class DummyMessage implements DummyMessageInterface
      * @Serializer\Type("string")
      * @Serializer\Groups({"foo"})
      */
+    #[Serializer\Type('string')]
+    #[Serializer\Groups(['foo'])]
     private $message;
 
     public function __construct(string $message)

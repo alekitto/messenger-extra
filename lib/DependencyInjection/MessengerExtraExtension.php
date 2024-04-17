@@ -18,7 +18,7 @@ use function interface_exists;
 class MessengerExtraExtension extends Extension
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function load(array $configs, ContainerBuilder $container): void
     {

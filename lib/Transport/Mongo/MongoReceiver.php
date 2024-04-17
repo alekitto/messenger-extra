@@ -39,7 +39,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function get(): iterable
     {
@@ -77,7 +77,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function all(?int $limit = null): iterable
     {
@@ -93,7 +93,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @param mixed $id
      */
@@ -163,7 +163,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
             [
                 'sort' => ['priority' => -1, 'published_at' => 1],
                 'typeMap' => ['root' => 'array', 'document' => 'array'],
-            ]
+            ],
         );
 
         if ($message === null) {

@@ -43,7 +43,7 @@ class MessengerSerializer implements MessengerSerializerInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function decode(array $encodedEnvelope): Envelope
     {
@@ -69,7 +69,7 @@ class MessengerSerializer implements MessengerSerializerInterface
             $encodedEnvelope['body'],
             Type::parse($encodedEnvelope['headers']['type']),
             $this->format,
-            ContextConverter::toDeserializationContext($context)
+            ContextConverter::toDeserializationContext($context),
         );
 
         return new Envelope($message, iterator_to_array((static function () use ($envelopeItems): Generator {
@@ -80,7 +80,7 @@ class MessengerSerializer implements MessengerSerializerInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function encode(Envelope $envelope): array
     {

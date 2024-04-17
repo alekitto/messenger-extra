@@ -32,7 +32,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function get(): iterable
     {
@@ -50,7 +50,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function all(?int $limit = null): iterable
     {
@@ -58,7 +58,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @param mixed $id
      */

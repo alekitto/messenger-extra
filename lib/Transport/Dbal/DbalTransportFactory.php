@@ -18,7 +18,6 @@ use TypeError;
 use function array_merge;
 use function assert;
 use function explode;
-use function get_class;
 use function gettype;
 use function in_array;
 use function is_file;
@@ -28,8 +27,8 @@ use function parse_str;
 use function pathinfo;
 use function Safe\parse_url;
 use function Safe\preg_replace;
-use function Safe\sprintf;
-use function Safe\substr;
+use function sprintf;
+use function substr;
 use function strpos;
 use function strrev;
 use function substr_count;
@@ -69,15 +68,15 @@ class DbalTransportFactory implements TransportFactoryInterface
         $this->managerRegistry = $managerRegistry;
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
-        $dsn = preg_replace('#^(sqlite3?):///#', '$1://localhost/', $dsn);
+        $dsn = preg_replace('#^((?:pdo-)?sqlite3?):///#', '$1://localhost/', $dsn);
         assert(is_string($dsn));
 
         $params = parse_url($dsn);
+        assert(is_array($params));
+
         if ($params['scheme'] === 'doctrine') {
             if ($this->managerRegistry === null) {
                 throw new InvalidArgumentException('Cannot use an existing connection without a ManagerRegistry');
@@ -102,7 +101,10 @@ class DbalTransportFactory implements TransportFactoryInterface
                 $path = substr($path, 1);
             }
 
-            if ($params['scheme'] === 'sqlite' || $params['scheme'] === 'sqlite3') {
+            if ($params['scheme'] === 'sqlite' ||
+                $params['scheme'] === 'sqlite3' ||
+                $params['scheme'] === 'pdo-sqlite' ||
+                $params['scheme'] === 'pdo-sqlite3') {
                 // SQLite has a little different handling. First we should determine the filename.
                 $databaseName = $path;
                 $tableName = 'messenger';
@@ -138,12 +140,11 @@ class DbalTransportFactory implements TransportFactoryInterface
 
         assert($connection instanceof Connection);
 
+        /** @phpstan-ignore-next-line */
         return new DbalTransport($connection, $serializer, $options);
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function supports(string $dsn, array $options): bool
     {
         $scheme = parse_url($dsn, PHP_URL_SCHEME);

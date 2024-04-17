@@ -15,17 +15,13 @@ use function strpos;
  */
 class NullTransportFactory implements TransportFactoryInterface
 {
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
         return new NullTransport();
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function supports(string $dsn, array $options): bool
     {
         return strpos($dsn, 'null:') === 0;

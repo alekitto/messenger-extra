@@ -57,7 +57,6 @@ class DbalSender implements SenderInterface
         $delayStamp = $envelope->last(DelayStamp::class);
         assert($delayStamp instanceof DelayStamp || $delayStamp === null);
         if ($delayStamp !== null) {
-            /** @phpstan-ignore-next-line */
             $delay = new DateTimeImmutable('+ ' . $delayStamp->getDelay() . ' milliseconds');
         }
 
@@ -69,7 +68,7 @@ class DbalSender implements SenderInterface
         $messageId = $this->codec->encodeBinary(Uuid::uuid1());
         $values = [
             'id' => $messageId,
-            'published_at' => new DateTimeImmutable(), /** @phpstan-ignore-line */
+            'published_at' => new DateTimeImmutable(),
             'body' => $encodedMessage['body'],
             'headers' => $encodedMessage['headers'] ?? [],
             'properties' => [],
@@ -80,7 +79,6 @@ class DbalSender implements SenderInterface
         ];
 
         if ($message instanceof TTLAwareMessageInterface) {
-            /** @phpstan-ignore-next-line */
             $values['time_to_live'] = (new DateTimeImmutable())->modify('+ ' . $message->getTtl() . ' seconds');
         }
 

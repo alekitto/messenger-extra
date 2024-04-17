@@ -24,12 +24,12 @@ use const PHP_URL_SCHEME;
  */
 class MongoTransportFactory implements TransportFactoryInterface
 {
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
         $params = parse_url($dsn);
+        assert(is_array($params));
+
         $path = $params['path'];
         if (strpos($path, '/') === 0) {
             $path = substr($path, 1);
@@ -48,12 +48,11 @@ class MongoTransportFactory implements TransportFactoryInterface
             'collection_name' => $tableName,
         ]);
 
+        /** @phpstan-ignore-next-line */
         return new MongoTransport(new Client(UrlUtils::buildUrl($params), $auth), $serializer, $options);
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function supports(string $dsn, array $options): bool
     {
         $scheme = parse_url($dsn, PHP_URL_SCHEME);

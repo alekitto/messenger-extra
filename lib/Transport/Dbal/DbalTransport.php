@@ -74,7 +74,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function get(): iterable
     {
@@ -92,7 +92,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @return iterable<Envelope>
      */
@@ -102,7 +102,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @param mixed $id
      */

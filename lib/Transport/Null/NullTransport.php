@@ -13,7 +13,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 class NullTransport implements TransportInterface
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function get(): iterable
     {

@@ -2,9 +2,7 @@
 
 namespace Kcs\MessengerExtra\Tests\Fixtures;
 
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
-
-class DummyMessageHandler implements MessageHandlerInterface
+class DummyMessageHandler
 {
     public static int $count = 0;
 
