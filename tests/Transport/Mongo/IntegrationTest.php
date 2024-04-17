@@ -12,6 +12,7 @@ use Kcs\MessengerExtra\Utils\UrlUtils;
 use MongoDB\Client;
 use MongoDB\Driver\Exception\ConnectionTimeoutException;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface as PsrEventDispatcherInterface;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Envelope;
@@ -108,7 +109,7 @@ class IntegrationTest extends TestCase
         $messageBus->dispatch(new DummyMessage('First'));
         $messageBus->dispatch(new DummyMessage('Second'));
 
-        self::assertCount(2, $this->transport->all());
+        self::assertCount(2, iterator_to_array($this->transport->all()));
         self::assertEquals(2, $this->transport->getMessageCount());
 
         $receivedMessages = 0;
@@ -116,7 +117,7 @@ class IntegrationTest extends TestCase
         $thirdArgument = $workerClass->getConstructor()->getParameters()[2];
 
         $type = $thirdArgument->getType();
-        if ($type instanceof \ReflectionNamedType && EventDispatcherInterface::class === $type->getName()) {
+        if ($type instanceof \ReflectionNamedType && in_array($type->getName(), [EventDispatcherInterface::class, PsrEventDispatcherInterface::class], true)) {
             $worker = new Worker(['dummy_transport' => $this->transport], $messageBus, $eventDispatcher = new EventDispatcher());
         } else {
             $worker = new Worker(['dummy_transport' => $this->transport], $messageBus, [], $eventDispatcher = new EventDispatcher());
@@ -158,8 +159,8 @@ class IntegrationTest extends TestCase
 
         $worker->run();
 
-        self::assertCount(0, $this->transport->all());
-        self::assertCount(1, $this->failureTransport->all());
+        self::assertCount(0, iterator_to_array($this->transport->all()));
+        self::assertCount(1, iterator_to_array($this->failureTransport->all()));
         self::assertEquals(4, $receivedMessages);
     }
 
@@ -171,14 +172,14 @@ class IntegrationTest extends TestCase
         $this->transport->send(new Envelope($first = new DummyMessage('First')));
         $this->transport->send(new Envelope($second = new DummyMessage('Second')));
 
-        self::assertCount(2, $this->transport->all());
+        self::assertCount(2, iterator_to_array($this->transport->all()));
         self::assertEquals(2, $this->transport->getMessageCount());
 
         $receivedMessages = 0;
         $workerClass = new \ReflectionClass(Worker::class);
         $thirdArgument = $workerClass->getConstructor()->getParameters()[2];
-        $argumentType = $thirdArgument->getType();
-        if (EventDispatcherInterface::class === ($argumentType ? $argumentType->getName() : null)) {
+        $type = $thirdArgument->getType();
+        if ($type instanceof \ReflectionNamedType && in_array($type->getName(), [EventDispatcherInterface::class, PsrEventDispatcherInterface::class], true)) {
             $worker = new Worker([$this->transport], new MessageBus(), $eventDispatcher = new EventDispatcher());
         } else {
             $worker = new Worker([$this->transport], new MessageBus(), [], $eventDispatcher = new EventDispatcher());

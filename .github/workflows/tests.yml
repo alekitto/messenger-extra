@@ -8,6 +8,7 @@ jobs:
     build:
         runs-on: ubuntu-latest
         strategy:
+            fail-fast: false
             matrix:
                 versions:
                     # PHP, SF,   DB,     Ser,   MongoDB
@@ -52,30 +53,26 @@ jobs:
                     MONGO_INITDB_ROOT_USERNAME: ${{ matrix.versions[4] }}
                     MONGO_INITDB_ROOT_PASSWORD: ${{ matrix.versions[5] }}
                 options: >-
-                    --health-cmd "mongosh --eval 'db.stats()'"
+                    --health-cmd "mongosh --eval \"db.stats()\" -u \"$MONGO_INITDB_ROOT_USERNAME\" -p \"$MONGO_INITDB_ROOT_PASSWORD\""
                     --health-interval 10s
                     --health-timeout 5s
                     --health-retries 5
-                    --health-start-period 30s
+                    --health-start-period 40s
                 ports:
                     - 27017:27017
 
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Setup PHP with pecl extension
               uses: shivammathur/setup-php@v2
               with:
                   php-version: ${{ matrix.versions[0] }}
                   extensions: mongodb, :opcache
-            - name: Wait for mongo to be ready
-              uses: docker://toschneck/wait-for-it
-              with:
-                args: -q -t 60 mongo:27017
             - uses: docker://mongo
               if: matrix.versions[4]
               with:
                 args: >
-                  mongo --host mongo:27017 -u ${{ matrix.versions[4] }} -p ${{ matrix.versions[5] }} admin --eval "db = db.getSiblingDB('default'); db.createUser({ user: '${{ matrix.versions[4] }}', pwd: '${{ matrix.versions[5] }}', roles: [ { role: 'readWrite', db: 'default' }], passwordDigestor: 'server' })
+                  mongosh --host mongo:27017 -u ${{ matrix.versions[4] }} -p ${{ matrix.versions[5] }} admin --eval "db = db.getSiblingDB('default'); db.createUser({ user: '${{ matrix.versions[4] }}', pwd: '${{ matrix.versions[5] }}', roles: [ { role: 'readWrite', db: 'default' }], passwordDigestor: 'server' })
             - run: composer require --dev --no-update symfony/messenger=^${{ matrix.versions[1] }}
             - run: composer remove --dev --no-update kcs/serializer
               if: matrix.versions[3]
