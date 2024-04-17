@@ -6,11 +6,11 @@ namespace Kcs\MessengerExtra\DependencyInjection\Compiler;
 
 use Kcs\MessengerExtra\Transport\Dbal\DbalTransportFactory;
 use LogicException;
-use Ramsey\Uuid\Doctrine\UuidBinaryType;
 use Ramsey\Uuid\UuidInterface;
 use Safe\Exceptions\UrlException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\Uid\Uuid as SymfonyUuid;
 
 use function class_exists;
 use function in_array;
@@ -38,13 +38,14 @@ class CheckDependencyPass implements CompilerPassInterface
 
             if (
                 ($scheme === 'doctrine' || in_array($scheme, DbalTransportFactory::DBAL_SUPPORTED_SCHEMES, true))
-                && ! class_exists(UuidBinaryType::class)
+                && ! class_exists(UuidInterface::class)
+                && ! class_exists(SymfonyUuid::class)
             ) {
-                throw new LogicException('Please install ramsey/uuid-doctrine package to use dbal transport');
+                throw new LogicException('Please install symfony/uid or ramsey/uuid package to use dbal transport');
             }
 
-            if ($scheme === 'mongodb' && ! interface_exists(UuidInterface::class)) {
-                throw new LogicException('Please install ramsey/uuid package to use mongodb transport');
+            if ($scheme === 'mongodb' && ! class_exists(SymfonyUuid::class) && ! interface_exists(UuidInterface::class)) {
+                throw new LogicException('Please install symfony/uid or ramsey/uuid package to use mongodb transport');
             }
         }
     }

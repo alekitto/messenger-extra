@@ -16,9 +16,11 @@ use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Uid\Uuid as SymfonyUuid;
 use Throwable;
 
 use function assert;
+use function class_exists;
 use function microtime;
 use function time;
 
@@ -121,9 +123,9 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     private function hydrate(array $row): Envelope
     {
-        $envelope = $this->serializer->decode($row);
-
-        return $envelope->with(new TransportMessageIdStamp($row['_id']));
+        return $this->serializer
+            ->decode($row)
+            ->with(new TransportMessageIdStamp($row['_id']));
     }
 
     /**
@@ -131,7 +133,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      */
     private function fetchMessage(): ?Envelope
     {
-        $deliveryId = Uuid::uuid4()->toString();
+        $deliveryId = class_exists(SymfonyUuid::class) ? SymfonyUuid::v4()->toRfc4122() : Uuid::uuid4()->toString();
         $now = time();
 
         /** @phpstan-var array{_id: string, body: string, headers: string, id: (resource|string), time_to_live: ?int}|null $message */

@@ -24,7 +24,8 @@
         "symfony/framework-bundle": "^4.2 || ^5.0 || ^6.0 || ^7.0",
         "symfony/process": "^4.2 || ^5.0 || ^6.0 || ^7.0",
         "symfony/property-access": "^4.2 || ^5.0 || ^6.0 || ^7.0",
-        "symfony/serializer": "^4.2 || ^5.0 || ^6.0 || ^7.0"
+        "symfony/serializer": "^4.2 || ^5.0 || ^6.0 || ^7.0",
+        "symfony/uid": "^5.1 || ^6.0 || ^7.0"
     },
     "suggest": {
         "ramsey/uuid": "Required to use mongodb and dbal transport",

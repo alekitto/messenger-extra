@@ -9,9 +9,7 @@ use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
-use Ramsey\Uuid\Codec\StringCodec;
 use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidFactory;
 use Safe\DateTimeImmutable;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
@@ -21,10 +19,12 @@ use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\Serializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Uid\Uuid as SymfonyUuid;
 use Throwable;
 
 use function assert;
 use function bin2hex;
+use function class_exists;
 use function is_resource;
 use function json_decode;
 use function microtime;
@@ -44,7 +44,6 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     private Connection $connection;
     private float $redeliverMessagesLastExecutedAt;
     private float $removeExpiredMessagesLastExecutedAt;
-    private StringCodec $codec;
     private QueryBuilder $select;
     private QueryBuilder $update;
     private int $retryingSafetyCounter = 0;
@@ -54,7 +53,6 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
-        $this->codec = new StringCodec((new UuidFactory())->getUuidBuilder());
 
         $this->select = $this->connection->createQueryBuilder()
             ->select('id')
@@ -194,7 +192,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      */
     private function fetchMessage(): ?Envelope
     {
-        $deliveryId = $this->codec->encodeBinary(Uuid::uuid4());
+        $deliveryId = class_exists(SymfonyUuid::class) ? SymfonyUuid::v4()->toRfc4122() : Uuid::uuid4()->toString();
         $result = $this->select
             ->setParameter('delayedUntil', new DateTimeImmutable(), Types::DATETIMETZ_IMMUTABLE)
             ->executeQuery()

@@ -12,9 +12,6 @@ use Kcs\MessengerExtra\Message\DelayedMessageInterface;
 use Kcs\MessengerExtra\Message\PriorityAwareMessageInterface;
 use Kcs\MessengerExtra\Message\TTLAwareMessageInterface;
 use Kcs\MessengerExtra\Message\UniqueMessageInterface;
-use Ramsey\Uuid\Codec\OrderedTimeCodec;
-use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\SentStamp;
@@ -38,15 +35,12 @@ class DbalSender implements SenderInterface
     private SerializerInterface $serializer;
     private string $tableName;
     private Connection $connection;
-    private OrderedTimeCodec $codec;
 
     public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->serializer = $serializer ?? Serializer::create();
-
-        $this->codec = new OrderedTimeCodec((new UuidFactory())->getUuidBuilder());
     }
 
     public function send(Envelope $envelope): Envelope
@@ -65,7 +59,7 @@ class DbalSender implements SenderInterface
             ->withoutStampsOfType(TransportMessageIdStamp::class)
             ->withoutStampsOfType(DelayStamp::class));
 
-        $messageId = $this->codec->encodeBinary(Uuid::uuid1());
+        $messageId = MessageId::generate();
         $values = [
             'id' => $messageId,
             'published_at' => new DateTimeImmutable(),
