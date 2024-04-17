@@ -11,7 +11,9 @@ use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
 use function array_merge;
+use function assert;
 use function explode;
+use function is_array;
 use function parse_str;
 use function Safe\parse_url;
 use function Safe\substr;

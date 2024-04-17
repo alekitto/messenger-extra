@@ -29,9 +29,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
     /** @var array<string, mixed> $options */
     private array $options;
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function __construct(Connection $connection, ?SerializerInterface $serializer = null, array $options = [])
     {
         $this->connection = $connection;

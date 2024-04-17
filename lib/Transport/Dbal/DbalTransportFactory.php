@@ -18,8 +18,10 @@ use TypeError;
 use function array_merge;
 use function assert;
 use function explode;
+use function get_class;
 use function gettype;
 use function in_array;
+use function is_array;
 use function is_file;
 use function is_object;
 use function is_string;
@@ -28,9 +30,9 @@ use function pathinfo;
 use function Safe\parse_url;
 use function Safe\preg_replace;
 use function sprintf;
-use function substr;
 use function strpos;
 use function strrev;
+use function substr;
 use function substr_count;
 
 use const PATHINFO_EXTENSION;
@@ -56,9 +58,7 @@ class DbalTransportFactory implements TransportFactoryInterface
     /** @var ManagerRegistryV2|ManagerRegistryV3|null */
     private $managerRegistry;
 
-    /**
-     * @param ManagerRegistryV2|ManagerRegistryV3|null $managerRegistry
-     */
+    /** @param ManagerRegistryV2|ManagerRegistryV3|null $managerRegistry */
     public function __construct($managerRegistry = null)
     {
         if ($managerRegistry !== null && ! $managerRegistry instanceof ManagerRegistryV2 && ! $managerRegistry instanceof ManagerRegistryV3) {
@@ -101,10 +101,12 @@ class DbalTransportFactory implements TransportFactoryInterface
                 $path = substr($path, 1);
             }
 
-            if ($params['scheme'] === 'sqlite' ||
+            if (
+                $params['scheme'] === 'sqlite' ||
                 $params['scheme'] === 'sqlite3' ||
                 $params['scheme'] === 'pdo-sqlite' ||
-                $params['scheme'] === 'pdo-sqlite3') {
+                $params['scheme'] === 'pdo-sqlite3'
+            ) {
                 // SQLite has a little different handling. First we should determine the filename.
                 $databaseName = $path;
                 $tableName = 'messenger';

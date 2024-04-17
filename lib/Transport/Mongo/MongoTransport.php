@@ -22,9 +22,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     private MongoReceiver $receiver;
     private MongoSender $sender;
 
-    /**
-     * @param array<string, mixed> $options
-     */
+    /** @param array<string, mixed> $options */
     public function __construct(Client $client, ?SerializerInterface $serializer = null, array $options = [])
     {
         $this->collection = $client->{$options['database_name']}->{$options['collection_name']};

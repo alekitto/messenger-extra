@@ -2,6 +2,7 @@
 
 namespace Kcs\MessengerExtra\Tests\Adapter\Serializer;
 
+use Composer\InstalledVersions;
 use Kcs\MessengerExtra\Adapter\Serializer\MessengerSerializer;
 use Kcs\MessengerExtra\Tests\Fixtures\DummyMessage;
 use Kcs\Serializer\DeserializationContext;
@@ -30,6 +31,10 @@ class MessengerSerializerTest extends TestCase
     {
         if (! \class_exists(SerializerBuilder::class)) {
             self::markTestSkipped('Kcs serializer is not installed.');
+        }
+
+        if (version_compare(InstalledVersions::getVersion('kcs/serializer'), '4.3.0', '<')) {
+            self::markTestSkipped('Kcs serializer adapter cannot be tested against the current version.');
         }
 
         $this->serializer = SerializerBuilder::create()->build();
