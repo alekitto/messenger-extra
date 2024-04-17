@@ -9,7 +9,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 class RegisterDoctrineEventsTest extends TestCase
 {
-    public function provideNonDoctrineUrl(): iterable
+    public static function provideNonDoctrineUrl(): iterable
     {
         yield ['null:'];
         yield ['sync://'];
