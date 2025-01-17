@@ -33,13 +33,12 @@ use function sha1;
 class DbalSender implements SenderInterface
 {
     private SerializerInterface $serializer;
-    private string $tableName;
-    private Connection $connection;
 
-    public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
-    {
-        $this->connection = $connection;
-        $this->tableName = $tableName;
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly string $tableName,
+        SerializerInterface|null $serializer = null,
+    ) {
         $this->serializer = $serializer ?? Serializer::create();
     }
 

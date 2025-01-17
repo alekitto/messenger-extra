@@ -26,6 +26,7 @@ use function assert;
 use function bin2hex;
 use function class_exists;
 use function is_resource;
+use function is_string;
 use function json_decode;
 use function microtime;
 use function Safe\hex2bin;
@@ -40,18 +41,17 @@ use const JSON_THROW_ON_ERROR;
 class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, ListableReceiverInterface
 {
     private SerializerInterface $serializer;
-    private string $tableName;
-    private Connection $connection;
     private float $redeliverMessagesLastExecutedAt;
     private float $removeExpiredMessagesLastExecutedAt;
     private QueryBuilder $select;
     private QueryBuilder $update;
     private int $retryingSafetyCounter = 0;
 
-    public function __construct(Connection $connection, string $tableName, ?SerializerInterface $serializer = null)
-    {
-        $this->connection = $connection;
-        $this->tableName = $tableName;
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly string $tableName,
+        SerializerInterface|null $serializer = null,
+    ) {
         $this->serializer = $serializer ?? Serializer::create();
 
         $this->select = $this->connection->createQueryBuilder()
@@ -115,7 +115,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
     /**
      * {@inheritDoc}
      */
-    public function all(?int $limit = null): iterable
+    public function all(int|null $limit = null): iterable
     {
         $result = $this->connection->createQueryBuilder()
             ->select('body', 'headers', 'id')
@@ -139,7 +139,7 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
      *
      * @param mixed $id
      */
-    public function find($id): ?Envelope
+    public function find($id): Envelope|null
     {
         if (preg_match('/^[0-9a-f]+$/i', $id)) {
             $id = hex2bin($id);
@@ -180,17 +180,16 @@ class DbalReceiver implements ReceiverInterface, MessageCountAwareInterface, Lis
             'headers' => json_decode($row['headers'], true, 512, JSON_THROW_ON_ERROR),
         ]);
 
-        if (is_resource($row['id'])) {
-            $row['id'] = stream_get_contents($row['id']);
-        }
+        $id = is_resource($row['id']) ? stream_get_contents($row['id']) : $row['id'];
+        assert(is_string($id));
 
-        return $envelope->with(new TransportMessageIdStamp(bin2hex($row['id'])));
+        return $envelope->with(new TransportMessageIdStamp(bin2hex($id)));
     }
 
     /**
      * Fetches a message if it is any.
      */
-    private function fetchMessage(): ?Envelope
+    private function fetchMessage(): Envelope|null
     {
         $deliveryId = class_exists(SymfonyUuid::class) ? SymfonyUuid::v4()->toRfc4122() : Uuid::uuid4()->toString();
         $result = $this->select

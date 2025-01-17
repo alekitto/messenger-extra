@@ -30,13 +30,11 @@ use function time;
 class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     private SerializerInterface $serializer;
-    private Collection $collection;
     private float $removeExpiredMessagesLastExecutedAt;
     private int $retryingSafetyCounter = 0;
 
-    public function __construct(Collection $collection, ?SerializerInterface $serializer = null)
+    public function __construct(private readonly Collection $collection, SerializerInterface|null $serializer = null)
     {
-        $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
     }
 
@@ -81,7 +79,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     /**
      * {@inheritDoc}
      */
-    public function all(?int $limit = null): iterable
+    public function all(int|null $limit = null): iterable
     {
         $options = [];
         if ($options !== null) {
@@ -99,7 +97,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
      *
      * @param mixed $id
      */
-    public function find($id): ?Envelope
+    public function find($id): Envelope|null
     {
         $id = $id instanceof ObjectId ? $id : new ObjectId($id);
 
@@ -131,7 +129,7 @@ class MongoReceiver implements ReceiverInterface, ListableReceiverInterface, Mes
     /**
      * Fetches a message if it is any.
      */
-    private function fetchMessage(): ?Envelope
+    private function fetchMessage(): Envelope|null
     {
         $deliveryId = class_exists(SymfonyUuid::class) ? SymfonyUuid::v4()->toRfc4122() : Uuid::uuid4()->toString();
         $now = time();

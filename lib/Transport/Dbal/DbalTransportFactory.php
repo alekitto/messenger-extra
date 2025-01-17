@@ -13,24 +13,19 @@ use Symfony\Component\Messenger\Exception\InvalidArgumentException;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
-use TypeError;
 
 use function array_merge;
 use function assert;
 use function explode;
-use function get_class;
-use function gettype;
 use function in_array;
 use function is_array;
 use function is_file;
-use function is_object;
 use function is_string;
 use function parse_str;
 use function pathinfo;
 use function Safe\parse_url;
 use function Safe\preg_replace;
-use function sprintf;
-use function strpos;
+use function str_starts_with;
 use function strrev;
 use function substr;
 use function substr_count;
@@ -55,17 +50,8 @@ class DbalTransportFactory implements TransportFactoryInterface
         'sqlite3',
     ];
 
-    /** @var ManagerRegistryV2|ManagerRegistryV3|null */
-    private $managerRegistry;
-
-    /** @param ManagerRegistryV2|ManagerRegistryV3|null $managerRegistry */
-    public function __construct($managerRegistry = null)
+    public function __construct(private ManagerRegistryV2|ManagerRegistryV3|null $managerRegistry = null)
     {
-        if ($managerRegistry !== null && ! $managerRegistry instanceof ManagerRegistryV2 && ! $managerRegistry instanceof ManagerRegistryV3) {
-            throw new TypeError(sprintf('Argument 1 passed to %s must be an instance of Doctrine\Persistence\ManagerRegistry, Doctrine\Common\Persistence\ManagerRegistry or null, %s given', __METHOD__, is_object($managerRegistry) ? 'instance of ' . get_class($managerRegistry) : gettype($managerRegistry)));
-        }
-
-        $this->managerRegistry = $managerRegistry;
     }
 
     /** @param array<string, mixed> $options */
@@ -84,7 +70,7 @@ class DbalTransportFactory implements TransportFactoryInterface
 
             $connectionName = $params['host'] ?? 'default';
             $tableName = $params['path'] ?? 'messenger';
-            if (strpos($tableName, '/') === 0) {
+            if (str_starts_with($tableName, '/')) {
                 $tableName = substr($tableName, 1);
             }
 
@@ -97,7 +83,7 @@ class DbalTransportFactory implements TransportFactoryInterface
             $connection = DriverManager::getConnection($connection->getParams(), $connection->getConfiguration(), $connection->getEventManager());
         } else {
             $path = $params['path'];
-            if (strpos($path, '/') === 0) {
+            if (str_starts_with($path, '/')) {
                 $path = substr($path, 1);
             }
 
@@ -125,7 +111,7 @@ class DbalTransportFactory implements TransportFactoryInterface
                     }
                 }
 
-                if (strpos($databaseName, '/') === 0) {
+                if (str_starts_with($databaseName, '/')) {
                     $databaseName = '/' . $databaseName;
                 }
             } else {

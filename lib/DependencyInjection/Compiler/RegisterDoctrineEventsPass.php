@@ -20,7 +20,7 @@ class RegisterDoctrineEventsPass implements CompilerPassInterface
 
             try {
                 $urlParams = parse_url($url);
-            } catch (UrlException $e) {
+            } catch (UrlException) {
                 continue;
             }
 

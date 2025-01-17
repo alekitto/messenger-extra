@@ -28,12 +28,10 @@ use function time;
  */
 class MongoSender implements SenderInterface
 {
-    private Collection $collection;
     private SerializerInterface $serializer;
 
-    public function __construct(Collection $collection, ?SerializerInterface $serializer = null)
+    public function __construct(private readonly Collection $collection, SerializerInterface|null $serializer = null)
     {
-        $this->collection = $collection;
         $this->serializer = $serializer ?? Serializer::create();
     }
 

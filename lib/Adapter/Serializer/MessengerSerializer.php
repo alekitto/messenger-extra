@@ -22,24 +22,15 @@ use function unserialize;
 
 class MessengerSerializer implements MessengerSerializerInterface
 {
-    private SerializerInterface $serializer;
-    private string $format;
-
-    /**
-     * @var array<string, mixed> $context
-     * @phpstan-var array{groups?: string[], object_to_populate?: object} $context
-     */
-    private array $context;
-
     /**
      * @param array<string, mixed> $context
      * @phpstan-param array{groups?: string[], object_to_populate?: object} $context
      */
-    public function __construct(SerializerInterface $serializer, string $format = 'json', array $context = [])
-    {
-        $this->serializer = $serializer;
-        $this->format = $format;
-        $this->context = $context;
+    public function __construct(
+        private readonly SerializerInterface $serializer,
+        private readonly string $format = 'json',
+        private readonly array $context = [],
+    ) {
     }
 
     /**

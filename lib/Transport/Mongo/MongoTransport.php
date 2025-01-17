@@ -18,15 +18,16 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 class MongoTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface
 {
     private Collection $collection;
-    private ?SerializerInterface $serializer;
     private MongoReceiver $receiver;
     private MongoSender $sender;
 
     /** @param array<string, mixed> $options */
-    public function __construct(Client $client, ?SerializerInterface $serializer = null, array $options = [])
-    {
+    public function __construct(
+        Client $client,
+        private readonly SerializerInterface|null $serializer = null,
+        array $options = [],
+    ) {
         $this->collection = $client->{$options['database_name']}->{$options['collection_name']};
-        $this->serializer = $serializer;
     }
 
     /**
@@ -50,7 +51,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
     /**
      * {@inheritDoc}
      */
-    public function all(?int $limit = null): iterable
+    public function all(int|null $limit = null): iterable
     {
         yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
@@ -60,7 +61,7 @@ class MongoTransport implements TransportInterface, ListableReceiverInterface, M
      *
      * @param mixed $id
      */
-    public function find($id): ?Envelope
+    public function find($id): Envelope|null
     {
         return ($this->receiver ?? $this->getReceiver())->find($id);
     }

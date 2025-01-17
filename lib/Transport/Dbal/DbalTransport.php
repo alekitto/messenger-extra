@@ -21,20 +21,15 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  */
 class DbalTransport implements TransportInterface, ListableReceiverInterface, MessageCountAwareInterface, SetupableTransportInterface
 {
-    private Connection $connection;
-    private ?SerializerInterface $serializer;
     private DbalReceiver $receiver;
     private DbalSender $sender;
 
-    /** @var array<string, mixed> $options */
-    private array $options;
-
     /** @param array<string, mixed> $options */
-    public function __construct(Connection $connection, ?SerializerInterface $serializer = null, array $options = [])
-    {
-        $this->connection = $connection;
-        $this->serializer = $serializer;
-        $this->options = $options;
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly SerializerInterface|null $serializer = null,
+        private readonly array $options = [],
+    ) {
     }
 
     /**
@@ -94,7 +89,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
      *
      * @return iterable<Envelope>
      */
-    public function all(?int $limit = null): iterable
+    public function all(int|null $limit = null): iterable
     {
         yield from ($this->receiver ?? $this->getReceiver())->all($limit);
     }
@@ -104,7 +99,7 @@ class DbalTransport implements TransportInterface, ListableReceiverInterface, Me
      *
      * @param mixed $id
      */
-    public function find($id): ?Envelope
+    public function find($id): Envelope|null
     {
         return ($this->receiver ?? $this->getReceiver())->find($id);
     }
