@@ -3,14 +3,14 @@
     "description": "Additional transports and serializer support for symfony messenger",
     "type": "library",
     "require": {
-        "php": "^7.4 || ^8.0",
+        "php": "^8.1",
         "ext-json": "*",
-        "symfony/messenger": "^4.4 || ^5.0 || ^6.0 || ^7.0",
+        "symfony/messenger": ">=4.4",
         "thecodingmachine/safe": "^1.0 || ^2.0"
     },
     "require-dev": {
         "ext-mongodb": "^1.5",
-        "doctrine/dbal": "^2.10 || ^3.0",
+        "doctrine/dbal": "^2.10 || ^3.0 || ^4.0",
         "doctrine/orm": "^2.6 || ^3.0",
         "kcs/serializer": "^2.0 || ^3.0 || ^4.0",
         "mongodb/mongodb": "^1.4",
@@ -21,15 +21,11 @@
         "refugis/doctrine-extra": "^2.2 || ^3.0",
         "roave/security-advisories": "dev-master",
         "solido/php-coding-standards": "dev-master",
-        "symfony/framework-bundle": "^4.2 || ^5.0 || ^6.0 || ^7.0",
-        "symfony/process": "^4.2 || ^5.0 || ^6.0 || ^7.0",
-        "symfony/property-access": "^4.2 || ^5.0 || ^6.0 || ^7.0",
-        "symfony/serializer": "^4.2 || ^5.0 || ^6.0 || ^7.0",
-        "symfony/uid": "^5.1 || ^6.0 || ^7.0"
-    },
-    "suggest": {
-        "ramsey/uuid": "Required to use mongodb and dbal transport",
-        "ramsey/uuid-doctrine": "Required for DBAL transport"
+        "symfony/framework-bundle": ">=4.2",
+        "symfony/process": ">=4.2",
+        "symfony/property-access": ">=4.2",
+        "symfony/serializer": ">=4.2",
+        "symfony/uid": ">=5.1"
     },
     "license": "MIT",
     "authors": [

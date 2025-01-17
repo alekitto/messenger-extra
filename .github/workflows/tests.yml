@@ -12,13 +12,6 @@ jobs:
             matrix:
                 versions:
                     # PHP, SF,   DB,     Ser,   MongoDB
-                    - [7.4, 4.4, sqlite, false, '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 4.4, sqlite, false, '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 5.0, sqlite, false, '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 5.0, mysql,  false, '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.1, 4.4, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.1, 5.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.1, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
@@ -26,16 +19,18 @@ jobs:
                     - [8.3, 6.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.2, 7.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
                     - [8.3, 7.0, sqlite, true,  '', '', 'mongodb://localhost:27017/']
-                    - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
-                    - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
-                    - [8.0, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
-                    - [8.0, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.4, 7.2, sqlite, true,  '', '', 'mongodb://localhost:27017/']
+                    - [8.1, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
+                    - [8.1, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/?authSource=admin']
+                    - [8.1, 5.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.1, 5.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.1, 6.0, sqlite, false, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.1, 6.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.2, 6.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.3, 6.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.2, 7.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
                     - [8.3, 7.0, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
+                    - [8.4, 7.2, sqlite, true, 'admin', 'admin_pass', 'mongodb://admin:admin_pass@localhost:27017/other_db/queue?authSource=admin']
 
         name: Symfony ${{ matrix.versions[1] }} on PHP ${{ matrix.versions[0] }} with ${{ matrix.versions[2] }} database
         services:

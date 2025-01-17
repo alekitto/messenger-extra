@@ -91,7 +91,8 @@ class IntegrationTest extends TestCase
 
         if (isset($connection)) {
             $schemaManager = $connection->createSchemaManager();
-            $schemaManager->dropAndCreateDatabase('messenger');
+            $schemaManager->dropDatabase('messenger');
+            $schemaManager->createDatabase('messenger');
         }
 
         $this->transport->createTable();

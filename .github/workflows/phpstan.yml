@@ -11,11 +11,11 @@ jobs:
         strategy:
             matrix:
                 php_version:
-                    - '8.0'
+                    - '8.3'
 
         name: PHP ${{ matrix.php_version }}
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Setup PHP with pecl extension
               uses: shivammathur/setup-php@v2
               with:
