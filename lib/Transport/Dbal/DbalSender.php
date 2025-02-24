@@ -24,7 +24,7 @@ use function assert;
 use function bin2hex;
 use function mb_strlen;
 use function microtime;
-use function Safe\sprintf;
+use function sprintf;
 use function sha1;
 
 /**
